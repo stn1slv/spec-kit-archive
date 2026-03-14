@@ -1,0 +1,12 @@
+schema_version: "1.0"
+extension:
+  id: "archive"
+  name: "Spec-Kit Archive"
+  version: "1.0.0"
+  description: "Archive merged features into main project memory, resolving gaps and conflicts."
+requires:
+  speckit_version: ">=0.1.0"
+provides:
+  commands:
+    - name: "speckit.archive"
+      file: "commands/archive.md"
