@@ -20,7 +20,7 @@ This extension acts as the "Outer Loop" of the Double-Loop Parity framework: it 
 You can install this extension via the Spec-Kit CLI:
 
 ```bash
-speckit ext install https://github.com/stn1slv/spec-kit-archive/archive/refs/tags/v1.0.0.zip
+specify extension add archive --from https://github.com/stn1slv/spec-kit-archive/archive/refs/tags/v1.0.0.zip
 ```
 *(Note: Replace `v1.0.0` with the latest release version)*
 
