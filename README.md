@@ -4,16 +4,16 @@ A Spec-Kit extension to archive merged features into the main project memory.
 
 ## Overview
 
-The `speckit.archive` command is a **Post-Merge Archival** tool designed to consolidate finalized feature specifications, plans, and technical debt into the project's canonical memory (`.specify/memory/`).
+The `speckit.archive.run` command is a **Post-Merge Archival** tool designed to consolidate finalized feature specifications, plans, and technical debt into the project's canonical memory (`.specify/memory/`).
 
 This extension acts as the "Outer Loop" of the Double-Loop Parity framework: it ensures that after a PR is merged, the project remembers it correctly.
 
 ## Features
 
 - **Lifecycle Separation**: Operates purely on merging feature-level knowledge into project-level memory.
-- **Ecosystem Consistency**: Uses `scripts/check-prerequisites.sh` for reliable path resolution (handles monorepos and nested structures).
+- **Ecosystem Consistency**: Uses the core Spec-Kit `check-prerequisites.sh` script for reliable path resolution (handles monorepos and nested structures).
 - **Traceability**: Preserves `[Source: specs/###-feature-name]` tags and revision notes in the main memory artifacts.
-- **Reporting**: Mandates absolute paths in the final Reconciliation Report, ensuring logs are always useful regardless of your CWD.
+- **Reporting**: Mandates absolute paths in the final Archival Report, ensuring logs are always useful regardless of your CWD.
 
 ## Installation
 
@@ -27,7 +27,7 @@ speckit ext install https://github.com/stn1slv/spec-kit-archive/archive/refs/tag
 ## Usage
 
 ```bash
-/speckit.archive specs/###-feature-name
+/speckit.archive.run specs/###-feature-name
 ```
 
 You can optionally restrict the scope of the updates:
