@@ -1,8 +1,11 @@
 ---
 description: "Archive a feature specification into main project memory after merge, resolving gaps and conflicts"
+scripts:
+  sh: ../../scripts/bash/check-prerequisites.sh --json --paths-only
+  ps: ../../scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly
 ---
 Act as the **Chief Software Architect** and **Documentation Maintainer**.
-A feature has been merged into the `main` branch. Your goal is to **archive** (reconcile) the feature specification into the main project memory — ensuring completeness, resolving conflicts, closing gaps, and respecting the project constitution.
+A feature has been merged into the `main` branch. Your goal is to **archive** the feature specification into the main project memory — ensuring completeness, resolving conflicts, closing gaps, and respecting the project constitution.
 
 ## User Input
 
@@ -32,10 +35,10 @@ If `$ARGUMENTS` is empty, output `ERROR: No feature spec directory provided. Usa
 
 ### 0.1 Resolve Paths
 
-Use `scripts/check-prerequisites.sh` to identify the active feature directory and its artifacts. This script is mandatory for path discovery. If the script is missing, stop and inform the user.
+Run `{SCRIPT}` to identify the active feature directory and its artifacts. This script is mandatory for path discovery. If the script is missing, stop and inform the user.
 
 Derive absolute paths for:
-- `REPO_ROOT` (determined by walking upward to `.git` or `.specify`)
+- `REPO_ROOT` (from `{SCRIPT}` output)
 - `FEATURE_DIR` (from `check-prerequisites.sh`)
 - `MEMORY_DIR` (`REPO_ROOT / .specify/memory`)
 - `TEMPLATES_DIR` (`REPO_ROOT / .specify/templates`)
@@ -78,12 +81,12 @@ Check if `MEMORY_DIR` exists:
 mkdir -p MEMORY_DIR
 ```
 
-**If `MEMORY_DIR/spec.md` does not exist** (first reconciliation):
+**If `MEMORY_DIR/spec.md` does not exist** (first archival):
 - If `TEMPLATES_DIR/spec-template.md` exists, copy it as the seed and populate from the feature spec
 - Otherwise, create `spec.md` with the feature's spec content as the initial main spec
 - Note in the report: "Bootstrapped `.specify/memory/spec.md` from first feature"
 
-**If `MEMORY_DIR/plan.md` does not exist** (first reconciliation):
+**If `MEMORY_DIR/plan.md` does not exist** (first archival):
 - If `TEMPLATES_DIR/plan-template.md` exists, copy it as the seed and populate from the feature plan
 - Otherwise, create `plan.md` with the feature's plan content as the initial main plan
 - Note in the report: "Bootstrapped `.specify/memory/plan.md` from first feature"
@@ -97,10 +100,10 @@ Read `MEMORY_DIR/constitution.md` if it exists. Extract:
 
 **Constitution is non-negotiable.** Any feature content that conflicts with a constitution MUST principle is flagged as CRITICAL and must be resolved before merging. Do not silently override or reinterpret constitution rules.
 
-### 0.6 Check Extension Hooks (before reconciliation)
+### 0.6 Check Extension Hooks (before archival)
 
 Check if `REPO_ROOT/.specify/extensions.yml` exists:
-- If it exists, read it and look for entries under `hooks.before_reconcile`
+- If it exists, read it and look for entries under `hooks.before_archive`
 - If the YAML cannot be parsed or is invalid, skip hook checking silently
 - Filter to only hooks where `enabled: true`
 - For each remaining hook, do **not** attempt to interpret or evaluate hook `condition` expressions:
@@ -389,10 +392,10 @@ Output the following structured report. Use **absolute paths** for all file refe
 
 ## Step 7: Post-Reconciliation Hooks & Recommendations
 
-### 7.1 Check Extension Hooks (after reconciliation)
+### 7.1 Check Extension Hooks (after archival)
 
 Check if `REPO_ROOT/.specify/extensions.yml` exists:
-- Look for entries under `hooks.after_reconcile`
+- Look for entries under `hooks.after_archive`
 - Apply the same filtering and output logic as Step 0.6
 - If no hooks are registered or the file does not exist, skip silently
 
@@ -417,7 +420,7 @@ Provide actionable next steps:
 
 - All non-conflicting feature content merged into main memory artifacts.
 - Constitution compliance verified for all merged content.
-- Memory directory bootstrapped if this was the first reconciliation.
+- Memory directory bootstrapped if this was the first archival.
 - Feature spec `**Status**: Draft` updated to `Completed` (if applicable).
 - Conflicts either resolved (with user input) or marked with `NEEDS CLARIFICATION` (max 3).
 - Reconciliation Report printed with absolute paths for all changed files, constitution status, and next steps.
