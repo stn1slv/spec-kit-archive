@@ -27,7 +27,7 @@ Parse `$ARGUMENTS` as follows:
 - `--changelog-only` — update only `.specify/memory/changelog.md`
 - `--agent-only` — update only the agent knowledge file (GEMINI.md / AGENTS.md / CLAUDE.md)
 
-If `$ARGUMENTS` is empty, output `ERROR: No feature spec directory provided. Usage: /speckit.archive specs/###-feature-name [--scope-modifier]` and stop.
+If `$ARGUMENTS` is empty, output `ERROR: No feature spec directory provided. Usage: /speckit.archive.run specs/###-feature-name [--scope-modifier]` and stop.
 
 ---
 
@@ -39,7 +39,7 @@ Run `{SCRIPT}` to identify the active feature directory and its artifacts. This 
 
 Derive absolute paths for:
 - `REPO_ROOT` (from `{SCRIPT}` output)
-- `FEATURE_DIR` (from `check-prerequisites.sh`)
+- `FEATURE_DIR` (from `{SCRIPT}` output)
 - `MEMORY_DIR` (`REPO_ROOT / .specify/memory`)
 - `TEMPLATES_DIR` (`REPO_ROOT / .specify/templates`)
 
@@ -121,7 +121,7 @@ Check if `REPO_ROOT/.specify/extensions.yml` exists:
     ```
     ## Extension Hooks
     **Automatic Pre-Hook**: {extension}
-    Executing: `/{command}`
+    EXECUTE_COMMAND: /{command}
     Wait for the result before proceeding.
     ```
 - If no hooks are registered or the file does not exist, skip silently
@@ -175,7 +175,7 @@ For each extracted requirement, user story, and architecture decision, verify it
 ```
 🔴 CONSTITUTION CONFLICT:
 - Feature FR-XXX: "[requirement]" conflicts with Principle [N]: "[principle text]"
-  → This MUST be resolved before reconciliation can proceed.
+  → This MUST be resolved before archival can proceed.
 ```
 
 ### 2.2 Conflicts
@@ -254,7 +254,7 @@ This gives the user a preview before edits are applied.
 
 ---
 
-## Step 5: Reconciliation (Apply Edits)
+## Step 5: Archival (Apply Edits)
 
 ### Edit Rules
 - Use absolute paths for all file references.
@@ -346,12 +346,12 @@ This marks the feature specification as finalized after merge. Do not change oth
 
 ---
 
-## Step 6: Reconciliation Report
+## Step 6: Archival Report
 
 Output the following structured report. Use **absolute paths** for all file references.
 
 ```markdown
-# Reconciliation Report
+# Archival Report
 
 ## Changed Files
 | File (absolute path) | Change Summary |
@@ -390,7 +390,7 @@ Output the following structured report. Use **absolute paths** for all file refe
 
 ---
 
-## Step 7: Post-Reconciliation Hooks & Recommendations
+## Step 7: Post-Archival Hooks & Recommendations
 
 ### 7.1 Check Extension Hooks (after archival)
 
@@ -409,7 +409,7 @@ Provide actionable next steps:
    - Are there orphaned files to remove?
 3. **Verification:**
    - Run `make test` (or the project's equivalent) to verify nothing broke.
-   - Review the reconciliation report for accuracy.
+   - Review the archival report for accuracy.
 4. **Follow-up:**
    - Update `README.md` if CLI commands or user-facing APIs changed.
    - Capture architectural insights from `research.md` into project memory if applicable.
@@ -423,5 +423,5 @@ Provide actionable next steps:
 - Memory directory bootstrapped if this was the first archival.
 - Feature spec `**Status**: Draft` updated to `Completed` (if applicable).
 - Conflicts either resolved (with user input) or marked with `NEEDS CLARIFICATION` (max 3).
-- Reconciliation Report printed with absolute paths for all changed files, constitution status, and next steps.
+- Archival Report printed with absolute paths for all changed files, constitution status, and next steps.
 - Scoping hints respected — skipped artifacts explicitly noted.
