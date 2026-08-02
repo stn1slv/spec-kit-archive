@@ -138,7 +138,8 @@ Read the feature specification and extract:
 - Non-Functional Requirements (if any)
 - Key Entities and their fields
 - Edge cases and error handling
-- Success Criteria
+- Success Criteria / Measurable Outcomes (detect the ID convention, e.g., SC-XXX)
+- Assumptions (target users, scope boundaries, data/environment)
 
 **From plan.md:**
 - New dependencies introduced (with versions)
@@ -273,8 +274,9 @@ This gives the user a preview before edits are applied.
 3. **Update Key Entities** — add new entities; update existing ones if fields were added.
 4. **Update Edge Cases and Error Handling.**
 5. **Update Data Flow / Architecture** if the feature changed system data flows.
-6. **Merge Success Criteria** if present.
-7. **Deduplicate** — ensure no duplicate requirements in the final output.
+6. **Merge Success Criteria / Measurable Outcomes** if present. Continue from the highest existing ID (e.g., SC-XXX).
+7. **Merge Assumptions**: add new assumptions; skip any already recorded in main memory.
+8. **Deduplicate** — ensure no duplicate requirements in the final output.
 
 ### 5.2 Update Main Plan (`.specify/memory/plan.md`)
 
