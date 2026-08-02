@@ -275,7 +275,7 @@ This gives the user a preview before edits are applied.
 4. **Update Edge Cases and Error Handling.**
 5. **Update Data Flow / Architecture** if the feature changed system data flows.
 6. **Merge Success Criteria / Measurable Outcomes** if present. Continue from the highest existing ID (e.g., SC-XXX).
-7. **Merge Assumptions**: add new assumptions; skip any already recorded in main memory.
+7. **Merge Assumptions**: add new assumptions under the `## Assumptions` section (create the heading if the main spec lacks one); skip any already recorded in main memory.
 8. **Deduplicate** — ensure no duplicate requirements in the final output.
 
 ### 5.2 Update Main Plan (`.specify/memory/plan.md`)
