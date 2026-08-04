@@ -12,6 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Capture `Assumptions` and `Measurable Outcomes` (SC-XXX) when archiving a feature
   spec into `.specify/memory/spec.md`. Previously these sections were dropped, which
   meant assumptions recorded in feature specs were lost on archival (#3).
+- Item-level traceability refs (`[Source: specs/###-feature/spec.md -> FR-012]`), so a
+  consolidated entry carries one ref per contributing feature (#3).
+- Supersession pass: detects requirements a later feature replaces, confirms each removal
+  with the user, removes the retired entry from `spec.md`, and records it under a
+  `**Superseded:**` block in `changelog.md`. Retired IDs are never reused (#3).
+
+### Changed
+
+- Main spec merging now **consolidates** into existing entries instead of appending
+  per-feature extractions. Replaces the previous "prefer appending over restructuring"
+  edit rule, which caused the main spec to accumulate near-duplicate items (#3).
 
 ## [1.0.0] - 2026-03-14
 

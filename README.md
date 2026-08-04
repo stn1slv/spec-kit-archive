@@ -12,7 +12,9 @@ This extension acts as the "Outer Loop" of the Double-Loop Parity framework: it 
 
 - **Lifecycle Separation**: Operates purely on merging feature-level knowledge into project-level memory.
 - **Ecosystem Consistency**: Uses the core Spec-Kit `check-prerequisites.sh` script for reliable path resolution (handles monorepos and nested structures).
-- **Traceability**: Preserves `[Source: specs/###-feature-name]` tags and revision notes in the main memory artifacts.
+- **Consolidation**: Merges each item into the existing entry that covers the same ground, so the main spec stays a single consolidated specification instead of a per-feature digest.
+- **Traceability**: Adds item-level `[Source: specs/###-feature-name/spec.md -> FR-012]` refs and revision notes in the main memory artifacts. An entry consolidated from several features carries one ref per feature.
+- **Supersession**: Detects requirements that a later feature replaces, confirms each removal with you, then deletes the retired entry from the main spec and records it in `changelog.md`. Nothing is removed without confirmation.
 - **Reporting**: Mandates absolute paths in the final Archival Report, ensuring logs are always useful regardless of your CWD.
 
 ## Installation
@@ -40,6 +42,6 @@ You can optionally restrict the scope of the updates:
 
 1.  **Run `check-prerequisites.sh`** to find the active feature artifacts.
 2.  **Verify Constitution Compliance**: Check that feature implementations don't violate project "MUSTs".
-3.  **Perform Impact Map**: Ask up to 5 clarifying questions before proceeding.
-4.  **Archive Data**: Append entities, requirements, dependencies, and architecture notes into the main memory.
+3.  **Perform Impact Map**: Ask up to 5 clarifying questions before proceeding, including confirmation of any superseded requirements.
+4.  **Archive Data**: Consolidate entities, requirements, dependencies, and architecture notes into the main memory, and apply confirmed supersessions.
 5.  **Output Report**: Provide a comprehensive status report indicating changed files and what you should do next.

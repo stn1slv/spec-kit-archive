@@ -205,6 +205,25 @@ Categorize discrepancies between the feature spec and main memory:
 - Gap: New `/api/settings` route not in main plan routing section
 ```
 
+### 2.4 Supersession Candidates
+
+Identify entries in main memory that this feature **replaces** rather than extends. Look for:
+
+- The same capability restated with different or incompatible behavior.
+- An explicit statement in the feature spec that it replaces, deprecates, or removes prior behavior.
+- A rule that narrows or widens an existing one such that both cannot hold at once.
+
+Report each candidate with the evidence quoted:
+```
+🔄 SUPERSESSION CANDIDATES:
+- FR-005 (main) ← superseded by FR-021 (feature)
+  Main:    "[quote the existing requirement]"
+  Feature: "[quote the replacing requirement]"
+  Reason:  [why the new one replaces rather than complements the old one]
+```
+
+**This step is detection only — never remove anything here.** Every candidate must be confirmed by the user in Step 3 before 5.1.1 applies it. Overlap alone is not supersession: if both entries can hold at once, it is a consolidation case (5.1 step 9), not a supersession.
+
 ---
 
 ## Step 3: Clarify (exactly once; max 5 questions)
@@ -212,6 +231,8 @@ Categorize discrepancies between the feature spec and main memory:
 If conflicts or gaps require human judgment, ask **only questions that materially change scope or correctness**. Skip this step entirely if everything is unambiguous.
 
 **Always ask** if any CRITICAL constitution conflicts were detected — these cannot be auto-resolved.
+
+**Always ask** if any supersession candidates were detected in Step 2.4 — removal is destructive and requires explicit confirmation.
 
 Use this format and **wait for answers**:
 
@@ -230,6 +251,24 @@ Use this format and **wait for answers**:
 **Your choice**: _[Wait for user response]_
 ```
 
+**For supersession candidates**, ask **one** question covering all of them rather than one question per candidate, which would exhaust the question budget:
+
+```markdown
+## Question [N]: Confirm supersessions
+**Context**: [List each candidate as `OLD-ID ← NEW-ID`, quoting both entries]
+**Decision Needed**: Which of these should be removed from `.specify/memory/spec.md`?
+**Suggested Answers**:
+| Option | Answer | Implications |
+|--------|--------|--------------|
+| A | Remove all listed | Each removal is recorded in changelog.md; its ID is retired |
+| B | Remove none | Main spec keeps both entries; they may contradict each other |
+| C | Remove only [IDs] | Confirm a subset; the rest are kept as-is |
+
+**Your choice**: _[Wait for user response]_
+```
+
+Treat anything the user does not explicitly confirm as **not** superseded.
+
 **Rules:**
 - Max 5 questions total.
 - Max 3 unresolved `NEEDS CLARIFICATION` markers in output — beyond that, make reasonable defaults and note them in the report.
@@ -245,7 +284,8 @@ Before making any edits, produce a brief impact map:
 ### Impact Map
 | Artifact | Sections Affected | Change Type |
 |----------|------------------|-------------|
-| `.specify/memory/spec.md` | User Stories, FR-012–FR-015, Entities | Append + Update |
+| `.specify/memory/spec.md` | User Stories, FR-012–FR-015, Entities | Consolidate + Add |
+| `.specify/memory/spec.md` | FR-005 | Remove (superseded by FR-021) |
 | `.specify/memory/plan.md` | Dependencies, Project Structure | Append |
 | `.specify/memory/changelog.md` | Merged Features Log | New entry |
 | `GEMINI.md` | Recent Changes, Known Issues | Append |
@@ -259,24 +299,40 @@ This gives the user a preview before edits are applied.
 
 ### Edit Rules
 - Use absolute paths for all file references.
-- Preserve existing document structure and ordering.
-- Prefer appending over restructuring.
-- Add a `[Source: specs/###-feature-name]` traceability tag to merged content.
+- Preserve existing section layout and ordering. Consolidate *within* a section; do not reorganize the document.
+- **Consolidate, do not accumulate.** Merge each incoming item into the existing entry that already covers the same ground. Append a new entry only when no equivalent exists. The main spec is one consolidated specification, not a per-feature digest.
+- Add an **item-level** `[Source: specs/###-feature-name/spec.md -> ID]` traceability ref to each merged entry (e.g. `[Source: specs/007-invoice/spec.md -> FR-012]`). An entry consolidated from several features carries one ref per contributing feature.
 - Add a **Revision note** (date + reason) to each modified artifact.
 - Respect scoping hints — skip artifacts not in scope and explicitly note them.
 - **Detect and follow the project's existing ID convention** (FR-XXX, REQ-XXX, Flow1, US-XX, etc.). Continue the sequence from the highest existing ID in main memory. Never reuse or renumber existing IDs.
+- **When consolidating equivalent items, keep the earliest existing ID** and attach the later features' source refs to it. Never renumber the surviving entry.
 - **Constitution constraints must be respected** — do not merge content that violates them.
 
 ### 5.1 Update Main Specification (`.specify/memory/spec.md`)
 
-1. **Add User Stories / Integration Scenarios** — maintain priority ordering.
-2. **Merge Functional Requirements** — continue from the highest existing ID. Group by domain/module if the spec is large.
-3. **Update Key Entities** — add new entities; update existing ones if fields were added.
-4. **Update Edge Cases and Error Handling.**
+Each step below **consolidates** into the existing section rather than appending a new per-feature block.
+
+1. **Merge User Stories / Integration Scenarios** — fold into an existing story when it covers the same user goal; otherwise add, maintaining priority ordering.
+2. **Merge Functional Requirements** — fold into the existing requirement when it states the same capability; otherwise add, continuing from the highest existing ID. Group by domain/module if the spec is large.
+3. **Merge Key Entities** — add new entities; extend existing ones with new fields rather than restating the entity.
+4. **Merge Edge Cases and Error Handling** — fold cases describing the same failure mode into one entry.
 5. **Update Data Flow / Architecture** if the feature changed system data flows.
-6. **Merge Success Criteria / Measurable Outcomes** if present. Continue from the highest existing ID (e.g., SC-XXX).
+6. **Merge Success Criteria / Measurable Outcomes** if present. Fold outcomes measuring the same thing into one entry; otherwise continue from the highest existing ID (e.g., SC-XXX).
 7. **Merge Assumptions**: add new assumptions under the `## Assumptions` section (if the main spec lacks one, create it after Success Criteria to match the template's section order); skip any already recorded in main memory.
-8. **Deduplicate** — ensure no duplicate requirements in the final output.
+8. **Apply confirmed supersessions** — remove the items confirmed in Step 3 (see 5.1.1 below).
+9. **Consolidation pass** — review every section touched above (stories, requirements, entities, edge cases, measurable outcomes, assumptions). Where two entries state the same thing in different words, merge them into a single entry that keeps the earliest ID and carries a source ref per contributing feature. Leave genuinely distinct entries separate; do not over-merge items that only look similar.
+
+#### 5.1.1 Apply Confirmed Supersessions
+
+For each supersession candidate **confirmed by the user in Step 3**:
+
+1. Merge the **replacing** requirement normally (step 2 above), giving it a new ID continued from the highest existing one. The replacement is a new entry in main memory, not an edit of the old one.
+2. Remove the superseded entry from `.specify/memory/spec.md` entirely. Do not leave a placeholder, strikethrough, or `[Superseded by: ...]` note — the point is that no stale requirement text remains in the file agents load as context.
+3. **Retire the removed ID.** It must never be reused or reassigned to a future requirement, even though its number is now unused.
+4. Scan the other memory artifacts (`plan.md`, and the agent knowledge file) for references to the retired ID. Do not rewrite them automatically — list any dangling references in the Step 6 report so the user can resolve them.
+5. Record the removal in the changelog (see 5.4), naming both the retired ID and the replacing ID.
+
+Candidates that were **not** confirmed are left untouched and reported in Step 6. Never remove an entry that the user did not explicitly confirm.
 
 ### 5.2 Update Main Plan (`.specify/memory/plan.md`)
 
@@ -332,10 +388,15 @@ Create or update `.specify/memory/changelog.md`:
 **New Components:**
 - [Modules/services added]
 
+**Superseded:**
+- FR-005 (from specs/003-billing/spec.md) → replaced by FR-021. Reason: [one line]
+
 **Tasks Completed:** [completed]/[total] tasks
 ```
 
 Count tasks using the checkbox format: `- [X]` or `- [x]` = completed; `- [ ]` = incomplete. If `tasks.md` does not exist, omit the "Tasks Completed" line.
+
+The **Superseded** block is the audit trail for entries removed in 5.1.1. Record one line per removal: the retired ID, the source ref it came from, the replacing ID, and a one-line reason. This keeps the removal traceable in project memory without leaving stale requirement text in `spec.md`. Omit the block entirely if nothing was superseded.
 
 ### 5.5 Update Feature Spec Status
 
@@ -377,6 +438,12 @@ Output the following structured report. Use **absolute paths** for all file refe
 
 ## Conflicts Resolved
 [List any conflicts that were resolved and how, or "None"]
+
+## Consolidation
+[Entries merged into existing ones, e.g. "FR-012 absorbed the feature's equivalent requirement; now carries 2 source refs", or "None"]
+
+## Superseded Requirements
+[Confirmed removals as `OLD-ID (retired) → replaced by NEW-ID`, plus any candidates detected but declined by the user. List any dangling references to retired IDs found in other memory artifacts. Or "None"]
 
 ## Outstanding Items
 [Any remaining `NEEDS CLARIFICATION` markers, or "None"]
@@ -421,6 +488,8 @@ Provide actionable next steps:
 ## Done Criteria
 
 - All non-conflicting feature content merged into main memory artifacts.
+- Merged content consolidated into existing entries where equivalent, each carrying item-level source refs.
+- Supersession candidates detected, confirmed by the user, applied, and recorded in the changelog. Nothing removed without explicit confirmation.
 - Constitution compliance verified for all merged content.
 - Memory directory bootstrapped if this was the first archival.
 - Feature spec `**Status**: Draft` updated to `Completed` (if applicable).
