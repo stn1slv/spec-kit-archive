@@ -27,6 +27,8 @@ Parse `$ARGUMENTS` as follows:
 - `--changelog-only` — update only `.specify/memory/changelog.md`
 - `--agent-only` — update only the agent knowledge file (GEMINI.md / AGENTS.md / CLAUDE.md)
 
+If **several** scope modifiers are supplied, the scope is their **union** — `--spec-only --changelog-only` updates both `spec.md` and `changelog.md` and nothing else. "Only" bounds the whole set, not each flag individually.
+
 If `$ARGUMENTS` is empty, output `ERROR: No feature spec directory provided. Usage: /speckit.archive.run specs/###-feature-name [--scope-modifier]` and stop.
 
 ---
@@ -168,6 +170,8 @@ Read the feature specification and extract:
 
 Before merging, systematically check for issues.
 
+**Bootstrapped spec (applies to 2.2 and 2.4).** If `.specify/memory/spec.md` was bootstrapped from this same feature in Step 0.4, the main spec *is* the feature's content. Comparing the feature against its own copy would flag every requirement as a collision and every restatement as a supersession, so **skip 2.2 and 2.4 entirely** in that case. A feature cannot collide with, or supersede, itself.
+
 ### 2.1 Constitution Compliance (CRITICAL)
 
 For each extracted requirement, user story, and architecture decision, verify it does not conflict with any constitution MUST principle or Architecture Standard.
@@ -207,7 +211,7 @@ Categorize discrepancies between the feature spec and main memory:
 
 ### 2.4 Supersession Candidates
 
-**Skip this step entirely if `spec.md` was bootstrapped from this same feature in Step 0.4** (a feature cannot supersede itself), or if `spec.md` is not in scope. Skip 2.2 collision detection on a bootstrapped spec for the same reason.
+**Skip this step** if the spec was bootstrapped from this feature (see the Step 2 preamble) or if `spec.md` is not in scope.
 
 Otherwise, identify entries in `.specify/memory/spec.md` that this feature **wholly replaces**. Look for:
 
@@ -220,7 +224,7 @@ Two rules bound what counts:
 - **Whole entries only.** If only *part* of an existing entry is obsolete, it is **not** a supersession candidate. Report the contradiction and leave the entry untouched. Partial rewrites are the user's call, not this command's.
 - **Overlap is not supersession.** If both entries can hold at once, this is ordinary consolidation (5.1), not a supersession.
 
-Also re-read any `**Unresolved contradictions:**` block in `.specify/memory/changelog.md` and re-raise those entries as candidates if they are still present and still contradictory. That is how a contradiction the user declined or deferred on an earlier run gets another chance to be resolved.
+Also read the `## Unresolved Contradictions` section of `.specify/memory/changelog.md`, if that file exists, and re-raise each pair listed there as a candidate while both entries are still present and still contradictory. That is how a contradiction the user declined on an earlier run gets another chance to be resolved. Present a re-raised pair as `FR-012 (main) vs FR-023 (main)`, since both sides already carry main-memory IDs.
 
 Report each candidate with the evidence quoted:
 ```
@@ -251,6 +255,10 @@ If conflicts or gaps require human judgment, ask **only questions that materiall
 **The supersession gate.** Supersession requires **both** `.specify/memory/spec.md` (where the entry is removed from) and `.specify/memory/changelog.md` (where the audit line goes) to be **writable under the current scope**. Compute this from the scope modifiers actually supplied rather than assuming any particular one; with no modifiers, everything is in scope and the gate is open.
 
 When the gate is closed: do not ask the question, remove nothing, write no `RETIRED:` lines, and report the candidates as deferred, naming the scope that closed the gate. This gate governs the whole supersession flow — Step 3 and 5.1 alike.
+
+**A closed gate also blocks the contradiction record.** The `## Unresolved Contradictions` list lives in `changelog.md`, so when that file is out of scope the deferred candidates cannot be written down anywhere durable. Meanwhile 5.1 still adds the feature's conflicting item as a new entry, so the main spec ends the run holding both sides of a contradiction that nothing will re-raise. This is the one case where a scope modifier leaves the spec in a worse state than a full run.
+
+Do not paper over it. Report those candidates under a distinct **"deferred and unrecorded"** heading in Step 6, state plainly that they will **not** be raised again automatically, and recommend re-running the command at full scope to resolve them. If the run can be made at full scope instead, that is always the better option.
 
 Use this format and **wait for answers**:
 
@@ -288,7 +296,7 @@ Use this format and **wait for answers**:
 
 Treat anything the user does not explicitly confirm as **not** superseded.
 
-Every candidate the user does not confirm leaves two conflicting entries in the main spec. Record each one in the `**Unresolved contradictions:**` block of `changelog.md` (see 5.4) as well as in the Step 6 report, so 2.4 re-raises it on the next run instead of it becoming invisible.
+Every candidate the user does not confirm leaves two conflicting entries in the main spec. Record each one in the top-level `## Unresolved Contradictions` section of `changelog.md` (see 5.4) as well as in the Step 6 report, so 2.4 re-raises it on the next run instead of it becoming invisible.
 
 **Rules:**
 - Max 5 questions total.
@@ -351,6 +359,7 @@ Each step below **consolidates** into the existing section rather than appending
 6. **Update Data Flow / Architecture** if the feature changed system data flows.
 7. **Merge Success Criteria / Measurable Outcomes** if present. Fold outcomes measuring the same thing into one entry; otherwise continue from the highest existing ID (e.g., SC-XXX).
 8. **Merge Assumptions**: add new assumptions under the `## Assumptions` section (if the main spec lacks one, create it after Success Criteria to match the template's section order); skip any already recorded in main memory.
+9. **Close out the `RETIRED:` lines** opened in step 1. Every replacement ID is now settled, so fill in each line's replacement reference (see 5.1.1 step 3). Do not finish 5.1 with a `RETIRED:` line left incomplete.
 
 **Do not fold an incoming item into an entry you flagged in 2.4 as contradicting it.** Add it as a new entry instead, so the contradiction stays visible for the user to resolve rather than being silently merged away.
 
@@ -362,20 +371,20 @@ For each supersession candidate **confirmed by the user in Step 3**:
 
 1. Remove the entry from `.specify/memory/spec.md`. Do not leave a placeholder, strikethrough, or `[Superseded by: ...]` note — the point is that no stale requirement text remains in the file agents load as context.
 2. **Retire its ID.** It must never be reused or reassigned, even though its number is now unused.
-3. Write one line to the feature's changelog entry, **in the same pass as the removal**:
+3. **Open** a line in the feature's changelog entry, immediately, before moving to the next candidate:
    ```
-   - RETIRED: FR-005 (from specs/003-billing/spec.md) → replaced by FR-022. Reason: [one line]
+   - RETIRED: FR-005 (from specs/003-billing/spec.md) → replaced by <pending>. Reason: [one line]
    ```
-   Use `→ no replacement` when the feature retires the behavior outright.
+   The retired ID and reason are written **now**, so no entry is ever removed without a record existing. Only the replacement reference is left open, because it is not known yet.
 
-   **Which ID to record as the replacement.** It is whichever main-memory ID the feature's replacing item ends up under once steps 2–8 finish — a **new** ID if it was added as a new entry, or the **existing** entry's ID if it folded into one (earliest ID wins, so that entry keeps its original number). The IDs quoted in Step 2.4 are the *feature's* local numbering and must never appear here.
+   **Which ID the replacement reference takes.** Whichever main-memory ID the feature's replacing item ends up under once steps 2–8 finish — a **new** ID if it was added as a new entry, or the **existing** entry's ID if it folded into one (earliest ID wins, so that entry keeps its original number). The IDs quoted in Step 2.4 are the *feature's* local numbering and must never appear here. Write `→ no replacement` straight away when the feature retires the behavior outright; that case has nothing to wait for.
 
-   Because that ID is only settled later in this same run, write the line with the retired ID now and complete the replacement reference once steps 2–8 have finished. Completing a line you opened during this run is expected and is not a rewrite; the append-only rule in 5.4 governs lines from *previous* runs.
+   **5.1 step 9 closes these lines.** Completing a line you opened during this run is part of writing it, not a rewrite; the append-only rule in 5.4 governs lines from *previous* runs. No `<pending>` marker may survive the end of 5.1.
 
    If `changelog.md` has no entry for this feature yet, create it now using the 5.4 template; 5.4 will then update that same entry rather than adding a second one.
 4. Scan for references to the retired ID in `.specify/memory/spec.md` itself (cross-references such as "as specified in FR-005" survive the deletion of their target), `plan.md`, `constitution.md`, and the agent knowledge file. Do not rewrite them — list any dangling references in the Step 6 report.
 
-Candidates the user did not confirm are left untouched, recorded under `**Unresolved contradictions:**` in the changelog, and reported in Step 6. Never remove an entry without explicit confirmation.
+Candidates the user did not confirm are left untouched, recorded in the top-level `## Unresolved Contradictions` section of the changelog, and reported in Step 6. Never remove an entry without explicit confirmation.
 
 ### 5.2 Update Main Plan (`.specify/memory/plan.md`)
 
@@ -435,21 +444,28 @@ Create or update `.specify/memory/changelog.md`:
 - RETIRED: FR-005 (from specs/003-billing/spec.md) → replaced by FR-022. Reason: [one line]
 - RETIRED: FR-008 (from specs/004-export/spec.md) → no replacement. Reason: [one line]
 
-**Unresolved contradictions:**
-- FR-012 vs FR-023 — [one line on how they conflict]. User declined removal on YYYY-MM-DD.
-
 **Tasks Completed:** [completed]/[total] tasks
 ```
 
 Count tasks using the checkbox format: `- [X]` or `- [x]` = completed; `- [ ]` = incomplete. If `tasks.md` does not exist, omit the "Tasks Completed" line.
 
-Both blocks are read back on later runs, but they have **different lifecycles**. Never add a line to either for something that did not actually happen, and omit either block entirely when it has no entries.
-
-**Superseded** is a permanent audit trail of IDs removed from the main spec in 5.1.1. It is **append-only across runs**: once a run has finished, its lines are immutable — never edit, reorder, or prune them. (Completing a line you opened earlier in the *current* run, per 5.1.1 step 3, is part of writing it, not a rewrite.)
+The **Superseded** block is a permanent audit trail of IDs removed from the main spec in 5.1.1, and belongs to the feature entry that removed them. It is **append-only across runs**: once a run has finished, its lines are immutable — never edit, reorder, or prune them. (Completing a line you opened earlier in the *current* run, per 5.1.1 step 3, is part of writing it, not a rewrite.) Omit the block when the feature retired nothing, and never add a line for a removal that did not happen.
 
 Every line starts with the literal marker `RETIRED:` followed by the retired ID, because 5.1's ID rules scan for exactly that marker when collecting IDs that must never be reissued. The rest of the line names a **live** replacement and is deliberately ignored by that scan. If the retired entry carried several source refs, list them all; if it carried a legacy ref or none, say so.
 
-**Unresolved contradictions** is a **working list, not an audit trail**, so unlike the block above it is meant to shrink. It records supersession candidates the user did not confirm. Step 2.4 reads it on later runs and re-raises each pair while both entries are still present and still conflicting, so a declined or deferred contradiction gets another chance instead of becoming invisible. **Delete a line once its contradiction is resolved** — because one side was removed, because the entries no longer conflict, or because the user has confirmed the removal on a later run. A resolved pair left in this list would be re-raised forever.
+#### Unresolved Contradictions (top-level, not per-feature)
+
+Maintain a single `## Unresolved Contradictions` section at the **end of `changelog.md`**, outside the Merged Features Log:
+
+```markdown
+## Unresolved Contradictions
+
+- FR-012 vs FR-023 — [one line on how they conflict]. Raised by specs/007-invoice on YYYY-MM-DD; user declined removal.
+```
+
+This is a **working list, not an audit trail**, which is why it is deliberately kept out of the per-feature entries: it is meant to shrink, and resolving an item should never mean editing a past feature's record. Step 2.4 reads this one section on later runs and re-raises each pair while both entries are still present and still conflicting, so a declined contradiction gets another chance instead of becoming invisible.
+
+**Delete a line once its contradiction is resolved** — because one side was removed, because the entries no longer conflict, or because the user confirmed the removal on a later run. A resolved pair left here would be re-raised forever. Omit the whole section when the list is empty.
 
 ### 5.5 Update Feature Spec Status
 
@@ -498,7 +514,7 @@ Output the following structured report. Use **absolute paths** for all file refe
 ## Superseded Requirements
 [Confirmed removals as `OLD-ID (retired) → replaced by NEW-ID` or `OLD-ID (retired, no replacement)`. Also list:
 - candidates left unresolved, and the contradiction each leaves in the spec (these are also written to changelog.md and re-raised next run)
-- candidates deferred because the supersession gate was closed, naming the scope responsible
+- **deferred and unrecorded** — candidates deferred because the supersession gate was closed *and* the contradiction could not be written to changelog.md. Name the scope responsible and state plainly that these will **not** be raised again automatically; recommend a re-run at full scope
 - dangling references to retired IDs found in spec.md, plan.md, constitution.md, or the agent file
 Or "None"]
 
@@ -530,6 +546,7 @@ Check if `REPO_ROOT/.specify/extensions.yml` exists:
 Provide actionable next steps:
 
 1. **Manual Review Items:** Anything flagged during conflict detection or constitution compliance check.
+   - If any supersessions were reported as **deferred and unrecorded**, recommend re-running `/speckit.archive.run` at full scope (no modifiers) so they can be raised, decided, and recorded.
 2. **Cleanup Suggestions:**
    - Can the feature spec folder be archived? (e.g., `mv specs/###-feature-name .specify/archive/`)
    - Are there orphaned files to remove?
@@ -546,7 +563,7 @@ Provide actionable next steps:
 
 - All non-conflicting feature content merged into main memory artifacts.
 - Feature content folded into existing entries where equivalent, each carrying item-level source refs. No pre-existing entry merged into another.
-- Confirmed supersessions applied, their IDs retired, and one `RETIRED:` line written per removal in the same pass. Unresolved contradictions recorded in the changelog so the next run re-raises them. Nothing removed without explicit confirmation.
+- Confirmed supersessions applied, their IDs retired, and one `RETIRED:` line opened at removal and closed out by 5.1 step 9 — none left `<pending>`. Unresolved contradictions recorded in the top-level changelog section so the next run re-raises them, or reported as "deferred and unrecorded" when scope prevented that. Nothing removed without explicit confirmation.
 - Constitution compliance verified for all merged content.
 - Memory directory bootstrapped if this was the first archival.
 - Feature spec `**Status**: Draft` updated to `Completed` (if applicable).
