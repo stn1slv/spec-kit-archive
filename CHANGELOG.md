@@ -14,17 +14,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   meant assumptions recorded in feature specs were lost on archival (#3).
 - Item-level traceability refs (`[Source: specs/###-feature/spec.md -> FR-012]`), so a
   consolidated entry carries one ref per contributing feature (#3).
-- Supersession pass: detects requirements a later feature replaces, confirms removals with
-  the user before deleting anything, removes the retired entry from `spec.md`, and records
-  it under a `**Superseded:**` block in `changelog.md`. Retired IDs are read back on later
-  runs so they are never reissued. Removal is skipped entirely when the changelog is out of
-  scope, so a deletion can never happen without an audit trail (#3).
+- Supersession pass: detects requirements a later feature wholly replaces, confirms removals
+  with the user before deleting anything, removes the retired entry from `spec.md`, and
+  records it as a `RETIRED:` line in `changelog.md`. Retired IDs are read back on later runs
+  so they are never reissued. Removal is skipped entirely unless both `spec.md` and
+  `changelog.md` are writable, so a deletion can never happen without an audit trail (#3).
+- Unresolved contradictions are recorded in `changelog.md` when a supersession is not
+  confirmed, and re-raised on the next archival rather than being reported once and lost (#3).
 
 ### Changed
 
 - Main spec merging now **consolidates** into existing entries instead of appending
   per-feature extractions. Replaces the previous "prefer appending over restructuring"
   edit rule, which caused the main spec to accumulate near-duplicate items (#3).
+  Only incoming feature items are folded into existing entries; two entries that both
+  already exist in main memory are never merged, so an established ID cannot vanish.
 
 ## [1.0.0] - 2026-03-14
 
