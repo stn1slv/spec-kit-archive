@@ -14,7 +14,7 @@ This extension acts as the "Outer Loop" of the Double-Loop Parity framework: it 
 - **Ecosystem Consistency**: Uses the core Spec-Kit `check-prerequisites.sh` script for reliable path resolution (handles monorepos and nested structures).
 - **Consolidation**: Merges each item into the existing entry that covers the same ground, so the main spec stays a single consolidated specification instead of a per-feature digest.
 - **Traceability**: Adds item-level `[Source: specs/###-feature-name/spec.md -> FR-012]` refs and revision notes in the main memory artifacts. An entry consolidated from several features carries one ref per feature.
-- **Supersession**: Detects requirements that a later feature replaces, confirms each removal with you, then deletes the retired entry from the main spec and records it in `changelog.md`. Nothing is removed without confirmation.
+- **Supersession**: Detects requirements that a later feature replaces, confirms removals with you before deleting anything, then removes the retired entry from the main spec and records it in `changelog.md`. Retired IDs are never reissued, and removal is skipped entirely if the changelog is out of scope, so nothing is deleted without an audit trail.
 - **Reporting**: Mandates absolute paths in the final Archival Report, ensuring logs are always useful regardless of your CWD.
 
 ## Installation
@@ -22,9 +22,9 @@ This extension acts as the "Outer Loop" of the Double-Loop Parity framework: it 
 You can install this extension via the Spec-Kit CLI:
 
 ```bash
-specify extension add archive --from https://github.com/stn1slv/spec-kit-archive/archive/refs/tags/v1.0.0.zip
+specify extension add archive --from https://github.com/stn1slv/spec-kit-archive/archive/refs/tags/v1.1.0.zip
 ```
-*(Note: Replace `v1.0.0` with the latest release version)*
+*(Note: Replace `v1.1.0` with the latest release version)*
 
 ## Usage
 

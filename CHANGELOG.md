@@ -5,7 +5,7 @@ All notable changes to the Archive extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2026-08-04
 
 ### Added
 
@@ -14,9 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   meant assumptions recorded in feature specs were lost on archival (#3).
 - Item-level traceability refs (`[Source: specs/###-feature/spec.md -> FR-012]`), so a
   consolidated entry carries one ref per contributing feature (#3).
-- Supersession pass: detects requirements a later feature replaces, confirms each removal
-  with the user, removes the retired entry from `spec.md`, and records it under a
-  `**Superseded:**` block in `changelog.md`. Retired IDs are never reused (#3).
+- Supersession pass: detects requirements a later feature replaces, confirms removals with
+  the user before deleting anything, removes the retired entry from `spec.md`, and records
+  it under a `**Superseded:**` block in `changelog.md`. Retired IDs are read back on later
+  runs so they are never reissued. Removal is skipped entirely when the changelog is out of
+  scope, so a deletion can never happen without an audit trail (#3).
 
 ### Changed
 
