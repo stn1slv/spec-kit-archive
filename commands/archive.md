@@ -312,7 +312,7 @@ This gives the user a preview before edits are applied.
 - Add a **Revision note** (date + reason) to each modified artifact.
 - Respect scoping hints — skip artifacts not in scope and explicitly note them.
 - **Detect and follow the project's existing ID convention** (FR-XXX, REQ-XXX, Flow1, US-XX, etc.). Continue the sequence from the highest existing ID in main memory. Never reuse or renumber existing IDs.
-- **Retired IDs are off-limits.** Before assigning any new ID, read the `**Superseded:**` blocks in `.specify/memory/changelog.md` and collect every ID recorded there. Continue numbering above the highest ID found in **either** the main spec or that retired list, so a retired ID is never reissued even when it was the highest-numbered entry.
+- **Retired IDs are off-limits.** Before assigning any new ID, read the `**Superseded:**` blocks in `.specify/memory/changelog.md` **if that file exists** (on a first archival it does not yet) and collect every ID recorded there. Continue numbering above the highest ID found in **either** the main spec or that retired list, so a retired ID is never reissued even when it was the highest-numbered entry.
 - **When consolidating equivalent items, keep the earliest existing ID** and attach the later features' source refs to it. Never renumber the surviving entry.
 - **Constitution constraints must be respected** — do not merge content that violates them.
 
@@ -320,7 +320,10 @@ This gives the user a preview before edits are applied.
 
 Each step below **consolidates** into the existing section rather than appending a new per-feature block.
 
-**Supersession exception (applies to steps 1–7).** An incoming item confirmed in Step 3 as superseding an existing entry is **always added as a new entry with a new ID**. Never fold it into the entry it supersedes: that entry is about to be removed in step 8, and folding would destroy the replacement along with it. This exception overrides the "fold when it states the same capability" rule for these items only.
+**Supersession exception (applies to steps 1–7).** An incoming item flagged in Step 2.4 as a supersession candidate is **always added as a new entry with a new ID**, whatever the Step 3 outcome. Never fold it into the entry it supersedes. This exception overrides the "fold when it states the same capability" rule for these items only, and holds in every case:
+
+- **Confirmed** — the target is removed in step 8; folding would destroy the replacement along with it.
+- **Declined, deferred, or never asked** — the two entries must stay separate and visible so the contradiction is reported in Step 6. Folding them would silently resolve a conflict the user did not agree to resolve.
 
 **Idempotency.** If this feature already has an entry in the Merged Features Log (`changelog.md`), this is a re-run. Update the existing records rather than adding duplicates, and never attach a second source ref for a feature an entry already cites.
 
@@ -336,9 +339,9 @@ Each step below **consolidates** into the existing section rather than appending
 
    **Do not sweep the whole document.** Entry pairs unrelated to this feature are out of scope: merging them would change content the Step 4 impact map never previewed.
 
-   **Declined supersessions are exempt.** If the user declined a supersession candidate in Step 3, the entries involved must be left as two separate entries. Merging them would carry out the removal the user just refused. Record the retained contradiction in the Step 6 report so it stays visible.
+   **Supersession candidates are exempt.** Any entry pair involved in a candidate detected in Step 2.4 must be left as two separate entries, whatever the Step 3 outcome — declined, deferred because the changelog was out of scope, or never asked because the question budget ran out. Merging them here would carry out a removal that was never confirmed. Record each retained contradiction in the Step 6 report so it stays visible.
 
-   **An absorbed ID is a removal.** When a merge makes an ID disappear, retire that ID exactly as 5.1.1 step 3 requires, record it in the changelog `**Superseded:**` block noting it was absorbed by consolidation rather than superseded, and run the same dangling-reference scan (5.1.1 step 4).
+   **An absorbed ID is a removal, and the same audit gate applies.** If `.specify/memory/changelog.md` is out of scope (for example under `--spec-only`), **do not absorb any ID**: leave the entries separate and report the consolidation as deferred. Otherwise, when a merge makes an ID disappear, retire that ID exactly as 5.1.1 step 3 requires, record it in the changelog `**Superseded:**` block noting it was absorbed by consolidation rather than superseded, and run the same dangling-reference scan (5.1.1 step 4).
 
 #### 5.1.1 Apply Confirmed Supersessions
 
@@ -467,7 +470,7 @@ Output the following structured report. Use **absolute paths** for all file refe
 [List any conflicts that were resolved and how, or "None"]
 
 ## Consolidation
-[Entries merged into existing ones, e.g. "FR-012 absorbed the feature's equivalent requirement; now carries 2 source refs". Name any ID that disappeared through absorption. Or "None"]
+[Entries merged into existing ones, e.g. "FR-012 absorbed the feature's equivalent requirement; now carries 2 source refs". Name any ID that disappeared through absorption, and list any consolidation deferred because the changelog was out of scope. Or "None"]
 
 ## Superseded Requirements
 [Confirmed removals as `OLD-ID (retired) → replaced by NEW-ID (main-memory ID)`, `OLD-ID (retired, no replacement)`, or `OLD-ID (partially superseded, entry retained)`. Also list:
