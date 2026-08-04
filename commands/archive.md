@@ -366,7 +366,12 @@ For each supersession candidate **confirmed by the user in Step 3**:
    ```
    - RETIRED: FR-005 (from specs/003-billing/spec.md) → replaced by FR-022. Reason: [one line]
    ```
-   Use `→ no replacement` when the feature retires the behavior outright. The replacing ID is the one this feature's item receives in `spec.md` during steps 2–8; the IDs quoted in Step 2.4 are the *feature's* local numbering and must never appear here. Since a replacement is numbered later in this same run, note the retired ID now and fill in the replacing ID once step 3 or 7 has assigned it.
+   Use `→ no replacement` when the feature retires the behavior outright.
+
+   **Which ID to record as the replacement.** It is whichever main-memory ID the feature's replacing item ends up under once steps 2–8 finish — a **new** ID if it was added as a new entry, or the **existing** entry's ID if it folded into one (earliest ID wins, so that entry keeps its original number). The IDs quoted in Step 2.4 are the *feature's* local numbering and must never appear here.
+
+   Because that ID is only settled later in this same run, write the line with the retired ID now and complete the replacement reference once steps 2–8 have finished. Completing a line you opened during this run is expected and is not a rewrite; the append-only rule in 5.4 governs lines from *previous* runs.
+
    If `changelog.md` has no entry for this feature yet, create it now using the 5.4 template; 5.4 will then update that same entry rather than adding a second one.
 4. Scan for references to the retired ID in `.specify/memory/spec.md` itself (cross-references such as "as specified in FR-005" survive the deletion of their target), `plan.md`, `constitution.md`, and the agent knowledge file. Do not rewrite them — list any dangling references in the Step 6 report.
 
@@ -438,11 +443,13 @@ Create or update `.specify/memory/changelog.md`:
 
 Count tasks using the checkbox format: `- [X]` or `- [x]` = completed; `- [ ]` = incomplete. If `tasks.md` does not exist, omit the "Tasks Completed" line.
 
-Both blocks below are **append-only** and are read back on later runs. Never rewrite or prune a line, and never add a line for something that did not actually happen. Omit either block entirely when it has no entries.
+Both blocks are read back on later runs, but they have **different lifecycles**. Never add a line to either for something that did not actually happen, and omit either block entirely when it has no entries.
 
-**Superseded** is the audit trail for IDs removed from the main spec in 5.1.1. Every line starts with the literal marker `RETIRED:` followed by the retired ID, because 5.1's ID rules scan for exactly that marker when collecting IDs that must never be reissued. The rest of the line names a **live** replacement and is deliberately ignored by that scan. If the retired entry carried several source refs, list them all; if it carried a legacy ref or none, say so.
+**Superseded** is a permanent audit trail of IDs removed from the main spec in 5.1.1. It is **append-only across runs**: once a run has finished, its lines are immutable — never edit, reorder, or prune them. (Completing a line you opened earlier in the *current* run, per 5.1.1 step 3, is part of writing it, not a rewrite.)
 
-**Unresolved contradictions** records supersession candidates the user did not confirm. Step 2.4 reads this block on later runs and re-raises each pair while both entries are still present and still conflicting, so a declined or deferred contradiction gets another chance instead of becoming invisible. Remove a line only when the contradiction is genuinely gone.
+Every line starts with the literal marker `RETIRED:` followed by the retired ID, because 5.1's ID rules scan for exactly that marker when collecting IDs that must never be reissued. The rest of the line names a **live** replacement and is deliberately ignored by that scan. If the retired entry carried several source refs, list them all; if it carried a legacy ref or none, say so.
+
+**Unresolved contradictions** is a **working list, not an audit trail**, so unlike the block above it is meant to shrink. It records supersession candidates the user did not confirm. Step 2.4 reads it on later runs and re-raises each pair while both entries are still present and still conflicting, so a declined or deferred contradiction gets another chance instead of becoming invisible. **Delete a line once its contradiction is resolved** — because one side was removed, because the entries no longer conflict, or because the user has confirmed the removal on a later run. A resolved pair left in this list would be re-raised forever.
 
 ### 5.5 Update Feature Spec Status
 
