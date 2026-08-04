@@ -326,9 +326,9 @@ Each step below **consolidates** into the existing section rather than appending
 
 For each supersession candidate **confirmed by the user in Step 3**:
 
-1. Merge the **replacing** requirement normally (step 2 above), giving it a new ID continued from the highest existing one. The replacement is a new entry in main memory, not an edit of the old one.
+1. The **replacing** entry has already been merged by steps 1–7 above, under a new ID continued from the highest existing one — whichever section it belongs to (user story, requirement, measurable outcome, and so on). **Do not merge it again here.** Confirm it is present and note its ID for the changelog entry. The replacement is a new entry in main memory, not an edit of the superseded one.
 2. Remove the superseded entry from `.specify/memory/spec.md` entirely. Do not leave a placeholder, strikethrough, or `[Superseded by: ...]` note — the point is that no stale requirement text remains in the file agents load as context.
-3. **Retire the removed ID.** It must never be reused or reassigned to a future requirement, even though its number is now unused.
+3. **Retire the removed ID.** It must never be reused or reassigned to a future entry, even though its number is now unused.
 4. Scan the other memory artifacts (`plan.md`, and the agent knowledge file) for references to the retired ID. Do not rewrite them automatically — list any dangling references in the Step 6 report so the user can resolve them.
 5. Record the removal in the changelog (see 5.4), naming both the retired ID and the replacing ID.
 
