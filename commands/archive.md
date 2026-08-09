@@ -37,9 +37,10 @@ If **several** scope modifiers are supplied, the scope is their **union** — `-
 2. **More than one feature.** This check comes **before** the unrecognized-token check, so a range or a second path gets the guidance below rather than a generic parse error. Reject when the input covers more than one feature:
    - two or more tokens that reference a feature — a path containing `/`, or a bare feature number or name such as `007` or `007-invoice-settings`
    - a glob character (`*` or `?`) in any token
-   - a range marker `thru`, `through`, `to`, or `..` linking two feature references, **whether written as separate tokens or joined into one** (`specs/001 thru specs/008`, `specs/001 thru 008`, and `specs/001..specs/008` are all ranges)
+   - a **word** range marker — `thru`, `through`, or `to` — appearing as a whole token between two feature references (`specs/001 thru specs/008`, `specs/001 thru 008`)
+   - a `..` **separating two feature references inside a single token** (`specs/001..specs/008`, `001..008`)
 
-   Match range markers as **whole tokens or whole path segments only**. A directory name that merely contains one of the words is not a range: `specs/003-import-to-csv` and `specs/012-through-put` are legitimate single features, and `../specs/001-foo` is one relative path, not a range. On a match, output:
+   A word marker only counts as a whole token, never as part of a directory name, so `specs/003-import-to-csv` and `specs/012-through-put` are legitimate single features. A `..` only counts when it sits between two feature references, so the leading `../` of a relative path such as `../specs/001-foo` is not a range. On a match, output:
    ```
    ERROR: This command archives one feature per run — no ranges or globs.
    Run it once per feature, in ascending order:
@@ -48,7 +49,7 @@ If **several** scope modifiers are supplied, the scope is their **union** — `-
    ```
    and stop.
 3. **Unrecognized token.** If any remaining token after the first is not one of the four modifiers above, output `ERROR: Unrecognized argument '[token]'. Supported: --spec-only, --plan-only, --changelog-only, --agent-only.` and stop.
-4. **Ambiguous first token.** The first token must resolve to **exactly one** existing directory under `REPO_ROOT`. A numeric prefix such as `specs/001` may expand to `specs/001-name-of-feature` only when exactly one directory matches. If nothing matches, or more than one does, output `ERROR: '[token]' does not resolve to exactly one feature directory` — listing the matches when there are several — and stop. **This check needs `REPO_ROOT`, so it is performed in Step 0.1**, which states where it falls in the sequence.
+4. **Ambiguous first token.** The first token must resolve to **exactly one** existing directory under `REPO_ROOT`. A numeric prefix such as `specs/001` may expand to `specs/001-name-of-feature` only when exactly one directory matches. If nothing matches, or more than one does, output `ERROR: '[token]' does not resolve to exactly one feature directory` — listing the matches when there are several — and stop.
 
 ---
 
@@ -102,26 +103,28 @@ Note which of these exist in `FEATURE_DIR` (for use in later steps):
 
 Check if `MEMORY_DIR` exists:
 
-**If `MEMORY_DIR` exists**: Read its contents. Note which files are present (`constitution.md`, `spec.md`, `plan.md`, `changelog.md`), **and for `spec.md` and `plan.md` whether each is empty or populated** in the sense defined in the Step 2 preamble. Step 2 and the 5.1 ID rules key on that fact, so record it once here rather than re-deriving it.
+**If `MEMORY_DIR` exists**: Read its contents. Note which files are present (`constitution.md`, `spec.md`, `plan.md`, `changelog.md`), **and for `spec.md` and `plan.md` whether each is empty or populated**. Step 2 and the 5.1 ID rules key on that fact, so record it once here rather than re-deriving it.
+
+**What "empty" means for a memory artifact** — here, and wherever this command asks whether one is empty: it carries **no content entries**, meaning no requirements, stories, entities, edge cases, outcomes, assumptions, dependencies or modules. A Step 0.4 seed is **always** empty in this sense, even though it has section headings and is not a zero-byte file. Headings, template boilerplate and revision notes do not count as content, and a missing file counts as empty. This says nothing about other uses of the word, such as an empty `$ARGUMENTS`.
 
 **If `MEMORY_DIR` does not exist**: Create it:
 ```
 mkdir -p MEMORY_DIR
 ```
 
-**Bootstrapping creates an empty seed, never content.** Step 1 has not run yet, so nothing has been extracted from the feature. The seed exists only so 5.1 and 5.2 have a structured file to write into, exactly as they do on every later run. Populating here instead would bypass the merge steps and is how a first archival ends up half-empty.
-
 **Seed only what this run will populate.** Bootstrap `spec.md` only when 5.1 is in scope, and `plan.md` only when 5.2 is in scope. Seeding a file the run then skips is worse than not seeding it: the empty file exists, so no later run bootstraps it, no later run recognises it as unfilled, and this feature's content is lost for good.
 
-When a scope modifier suppresses a bootstrap, skip it silently here and record it under `## Scoping` in the Step 6 report. **State the recovery correctly**: this feature's content reaches the missing artifact only by re-running the command **for this same feature** at full scope, which 5.1's idempotency rule makes safe. A later full-scope run for a *different* feature creates the artifact but fills it with that feature's content, never this one's.
+When a scope modifier suppresses a bootstrap, skip it silently and record it under `## Scoping` in the Step 6 report, using this wording (substituting the artifact and feature):
 
-**If `MEMORY_DIR/spec.md` does not exist and `spec.md` is in scope** (first archival):
+> `plan.md` was not seeded because it is out of scope for this run. To get **this** feature's plan content into it, re-run `/speckit.archive.run specs/###-feature-name` at full scope. A full-scope run for a *different* feature will create the file but fill it with that feature's content, not this one's.
+
+**If `MEMORY_DIR/spec.md` does not exist and `spec.md` is in scope**:
 - If `TEMPLATES_DIR/spec-template.md` exists, copy it as the seed and **leave its sections empty**, removing template placeholder text
 - Otherwise, create `spec.md` containing the section headings the feature spec uses, all empty
-- **Do not populate it here** — 5.1 fills it
+- **Do not populate it here** — Step 1 has not run yet, so nothing has been extracted; 5.1 fills it
 - Note in the report: "Bootstrapped empty `.specify/memory/spec.md`; populated by 5.1"
 
-**If `MEMORY_DIR/plan.md` does not exist and `plan.md` is in scope** (first archival):
+**If `MEMORY_DIR/plan.md` does not exist and `plan.md` is in scope**:
 - If `TEMPLATES_DIR/plan-template.md` exists, copy it as the seed and **leave its sections empty**, removing template placeholder text
 - Otherwise, create `plan.md` containing the section headings the feature plan uses, all empty
 - **Do not populate it here** — 5.2 fills it
@@ -204,15 +207,13 @@ Read the feature specification and extract:
 
 Before merging, systematically check for issues.
 
-**Empty comparison target (applies to 2.2, 2.3, and 2.4).** A check that compares this feature against a main-memory artifact means nothing when that artifact is empty: there is no prior content to collide with, nothing that could be superseded, and every item is trivially "missing". **Skip each check whose comparison target is empty** — whether it was seeded in Step 0.4 during this run, or is empty or absent for any other reason.
-
-**What "empty" means, here and everywhere else in this command:** the artifact carries **no content entries** — no requirements, stories, entities, edge cases, outcomes, assumptions, dependencies or modules. A Step 0.4 seed is **always** empty in this sense, even though it has section headings and is not a zero-byte file. Headings, template boilerplate and revision notes do not count as content. A missing file is empty too.
+**Empty comparison target (applies to 2.2, 2.3, and 2.4).** A check that compares this feature against a main-memory artifact means nothing when that artifact is empty (defined in Step 0.4): there is no prior content to collide with, nothing that could be superseded, and every item is trivially "missing". **Skip each check whose comparison target is empty.**
 
 Judge the two artifacts **separately**, because a run can have one populated and the other not:
 - Spec-side — 2.2 requirement ID collisions and entity redefinitions, the Requirements and Data Model rows of 2.3, and the whole of 2.4 — keys on `.specify/memory/spec.md`.
 - Plan-side — 2.2 dependency conflicts, and the Architecture, Integration and Testing rows of 2.3 — keys on `.specify/memory/plan.md`.
 
-So a populated plan still gets its dependency check when the spec is a fresh seed, and vice versa. 5.1 and 5.2 populate the seeds, which is what closes those gaps. 2.1 always runs: the constitution is independent of both.
+2.1 always runs: the constitution is independent of both.
 
 ### 2.1 Constitution Compliance (CRITICAL)
 
@@ -377,10 +378,11 @@ This gives the user a preview before edits are applied. Include every confirmed 
 - Add an **item-level** `[Source: specs/###-feature-name/spec.md -> ID]` traceability ref to each merged entry (e.g. `[Source: specs/007-invoice/spec.md -> FR-012]`). An entry consolidated from several features carries one ref per contributing feature. Never attach a second ref for a feature the entry already cites.
 - **Legacy refs**: entries written in the older directory-level form (`[Source: specs/###-feature-name]`) carry no item ID. When you touch such an entry, upgrade the ref to `[Source: specs/###-feature-name/spec.md -> ID]` if the originating item can be identified, or to `[Source: specs/###-feature-name/spec.md]` if it cannot. Do not modify legacy refs on entries this feature does not touch.
 - Add a **Revision note** (date + reason) to each modified artifact.
-- Respect scoping hints — skip artifacts not in scope and explicitly note them. **Out of scope means not written, never not read**: artifacts outside the scope are still read when a rule requires it, **if they exist** (for example collecting retired IDs or checking for a prior run in `changelog.md`). A rule that reads a missing artifact treats it as empty rather than stopping.
-- **Detect and follow the project's existing ID convention** (FR-XXX, REQ-XXX, Flow1, US-XX, etc.). Continue the sequence from the highest existing ID in main memory. Never reuse or renumber existing IDs. **When `.specify/memory/spec.md` is empty** (as defined in the Step 2 preamble — a fresh Step 0.4 seed always is), there is no convention to detect and no highest ID: adopt the **feature spec's own** convention and carry its IDs across unchanged, so `FR-007` in the feature stays `FR-007` in main memory and its source ref matches. Do not renumber, and never inherit example IDs left behind by template placeholder text. Key this on the spec being empty, **not** on the run being a first archival: scope modifiers make runs possible where `plan.md` is being seeded while `spec.md` is already populated, and carrying the feature's IDs into a populated spec would duplicate existing ones.
-  - **Retired IDs still win.** Carry the feature's IDs across unchanged **except** any that appear in the retired list (next rule). `changelog.md` can already exist while `spec.md` is empty — a `--changelog-only` run creates it — so an empty spec is no guarantee that nothing has been retired. Renumber any colliding item above the highest retired ID.
-- **Retired IDs are off-limits.** Before assigning any new ID, read `.specify/memory/changelog.md` **if that file exists** — do not assume it does not just because `spec.md` is empty, since a `--changelog-only` run creates it first — and collect the ID immediately following each `RETIRED:` marker. **Collect only that ID** — the rest of the line names the live replacement and must be ignored. Continue numbering above the highest ID found in **either** the main spec or that retired list, so a retired ID is never reissued even when it was the highest-numbered entry.
+- Respect scoping hints — skip artifacts not in scope and explicitly note them. **Out of scope means not written, never not read**: artifacts outside the scope are still read when a rule requires it (for example collecting retired IDs or checking for a prior run in `changelog.md`). A rule that reads a missing artifact treats it as empty rather than stopping, so no rule below needs its own existence check.
+- **Idempotency is judged per artifact, not per run.** This feature has already been merged into an artifact if that artifact already carries source refs naming it. Check the artifact you are about to write, not `changelog.md`, because scope modifiers mean a feature can be present in `spec.md` while no changelog entry exists. When it is already present, update in place: never append a second copy, and never attach a source ref an entry already cites.
+- **Detect and follow the project's existing ID convention** (FR-XXX, REQ-XXX, Flow1, US-XX, etc.). Continue the sequence from the highest existing ID in main memory. Never reuse or renumber existing IDs. **When `.specify/memory/spec.md` is empty** there is no convention to detect and no highest ID: adopt the **feature spec's own** convention and carry its IDs across unchanged, so `FR-007` in the feature stays `FR-007` in main memory and its source ref matches. Do not renumber, and never inherit example IDs left behind by template placeholder text. Key this on the spec being empty, **not** on the run being a first archival: scope modifiers make runs possible where `plan.md` is being seeded while `spec.md` is already populated, and carrying the feature's IDs into a populated spec would duplicate existing ones.
+  - **Retired IDs still win.** Carry the feature's IDs across unchanged **except** any that appear in the retired list (next rule). Renumber a colliding item above the highest ID in **both** the retired list and the feature's own carried IDs, per the next rule — renumbering above the retired list alone would land on an ID the feature already uses.
+- **Retired IDs are off-limits.** Before assigning any new ID, read `.specify/memory/changelog.md` and collect the ID immediately following each `RETIRED:` marker. **Collect only that ID** — the rest of the line names the live replacement and must be ignored. Continue numbering above the highest ID found in **either** the main spec or that retired list, so a retired ID is never reissued even when it was the highest-numbered entry.
 - **When consolidating equivalent items, keep the earliest existing ID** and attach the later features' source refs to it. Never renumber the surviving entry.
 - **Constitution constraints must be respected** — do not merge content that violates them.
 
@@ -390,9 +392,9 @@ Each step below **consolidates** into the existing section rather than appending
 
 **Removals come first.** Step 1 applies the confirmed supersessions, before any merging. Nothing can then be folded into an entry that is about to be deleted.
 
-**First run.** If `spec.md` was bootstrapped in Step 0.4 it is an empty seed, so steps 2–8 run **normally** — they populate empty sections instead of folding into existing entries. There is nothing to merge against and nothing to double-count, and source refs are attached exactly as on any other run. This is the run that puts the first feature into main memory, so nothing Step 1 extracted may be left out. (Step 2.4 was skipped in Step 2, so step 1 has nothing to apply.)
+**Empty seed.** If `spec.md` is empty, steps 2–8 run **normally** and populate the empty sections; there is simply nothing to fold into. Nothing Step 1 extracted may be left out.
 
-**Idempotency.** If this feature already has an entry in the Merged Features Log (`changelog.md`), this is a re-run. Update that entry in place rather than appending a second one, and never attach a source ref an entry already cites.
+**Changelog entry.** If this feature already has an entry in the Merged Features Log (`changelog.md`), update that entry in place rather than appending a second one. (Whether the feature's *content* is already merged is judged per artifact — see the Edit Rules.)
 
 1. **Apply confirmed supersessions** — see 5.1.1 below. This happens before everything else.
 2. **Merge User Stories / Integration Scenarios** — fold into an existing story when it covers the same user goal; otherwise add, maintaining priority ordering.
@@ -425,13 +427,11 @@ For each supersession candidate **confirmed by the user in Step 3**:
    **5.1 step 9 closes these lines.** Completing a line you opened during this run is part of writing it, not a rewrite; the append-only rule in 5.4 governs lines from *previous* runs. No `<pending>` marker may survive the end of 5.1.
 
    If `changelog.md` has no entry for this feature yet, create it now using the 5.4 template; 5.4 will then update that same entry rather than adding a second one.
-4. Scan for references to the retired ID in `.specify/memory/spec.md` itself (cross-references such as "as specified in FR-005" survive the deletion of their target), and in `plan.md`, `constitution.md`, and the agent knowledge file **where each exists** — scope gating means `plan.md` may legitimately not have been created yet. Do not rewrite them — list any dangling references in the Step 6 report.
+4. Scan for references to the retired ID in `.specify/memory/spec.md` itself (cross-references such as "as specified in FR-005" survive the deletion of their target), and in `plan.md`, `constitution.md`, and the agent knowledge file. Do not rewrite them — list any dangling references in the Step 6 report.
 
 Candidates the user did not confirm are left untouched, recorded in the top-level `## Unresolved Contradictions` section of the changelog, and reported in Step 6. Never remove an entry without explicit confirmation.
 
 ### 5.2 Update Main Plan (`.specify/memory/plan.md`)
-
-**First run.** If `plan.md` was seeded in Step 0.4 it is empty, so the steps below run **normally** and populate empty sections rather than extending existing ones. Steps 6 and 7 simply have nothing to act on yet: there is no "Future Work" to prune, and "reflects the implemented state" is satisfied by what these steps write. Add nothing beyond what the steps below call for.
 
 1. **Dependencies:** Add new packages (with versions) to "Primary Dependencies" or equivalent section.
 2. **Project Structure:** Add new modules/services to the structure tree.
@@ -613,7 +613,7 @@ Provide actionable next steps:
 - Feature content folded into existing entries where equivalent, each carrying item-level source refs. No pre-existing entry merged into another.
 - Confirmed supersessions applied, their IDs retired, and one `RETIRED:` line opened at removal and closed out by 5.1 step 9 — none left `<pending>`. Unresolved contradictions recorded in the top-level changelog section so the next run re-raises them, or reported as "deferred and unrecorded" when scope prevented that. Nothing removed without explicit confirmation.
 - Constitution compliance verified for all merged content.
-- Memory directory bootstrapped for every artifact this run's scope will populate, and where `spec.md` was seeded **and in scope**, every category Step 1 extracted is present in it or its absence is stated in the report. An artifact whose bootstrap was suppressed by scope is named under `## Scoping`.
+- Memory directory bootstrapped for every artifact this run's scope will populate, and any artifact whose bootstrap was suppressed by scope named under `## Scoping`.
 - Feature spec `**Status**: Draft` updated to `Completed` (if applicable).
 - Conflicts either resolved (with user input) or marked with `NEEDS CLARIFICATION` (max 3).
 - Archival Report printed with absolute paths for all changed files, constitution status, and next steps.
