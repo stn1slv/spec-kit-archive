@@ -29,7 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   assumed every source item had an ID, so against a feature spec with unnumbered edge cases an
   agent produced `-> Edge Cases`, naming a section rather than an item. The rule now falls back
   to a quoted heading or opening phrase, then to the file-level form, and rejects bare section
-  names outright (#3).
+  names outright. Upgrading an older directory-level ref uses the same ladder, so an
+  identifiable but unnumbered item no longer drops straight to the file-level form (#3).
 - The `->` in a source ref is now defined. It means "came **from** this item in that file", and
   never "this source item became that ID", which is how it had been misread (#3).
 - The allowlist entries name the steps that use each file descriptively rather than
