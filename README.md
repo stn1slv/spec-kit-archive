@@ -15,16 +15,21 @@ This extension acts as the "Outer Loop" of the Double-Loop Parity framework: it 
 - **Consolidation**: Folds each incoming feature item into the existing entry that covers the same ground, so the main spec stays a single consolidated specification instead of a per-feature digest. Existing entries are never merged into each other, so an established requirement ID cannot disappear behind your back.
 - **Traceability**: Adds item-level `[Source: specs/###-feature-name/spec.md -> FR-012]` refs and revision notes in the main memory artifacts. An entry consolidated from several features carries one ref per feature.
 - **Supersession**: Detects requirements a later feature wholly replaces and asks you to confirm before deleting anything. Confirmed removals are deleted from the main spec and recorded in `changelog.md`, and their IDs are never reissued. Anything you do not confirm stays put and is recorded as an unresolved contradiction, so the next archival raises it again instead of losing it.
+- **Bounded inputs**: Declares the complete list of files it may take content from. Git history, deleted files, ad-hoc notes and agent memory stores are not sources, and a missing artifact is never reconstructed. This is what keeps runs reproducible and keeps the `[Source: ...]` refs honest.
 - **Reporting**: Mandates absolute paths in the final Archival Report, ensuring logs are always useful regardless of your CWD.
+
+## Hooks
+
+The command checks `.specify/extensions.yml` for `before_archive` and `after_archive` hooks. **These are extension-defined events, not core Spec-Kit ones.** Core fires `before_`/`after_` hooks for its own commands (`specify`, `plan`, `tasks`, `implement`, and so on); archival runs after the cycle, so this command reads and reports the hooks itself. Another extension can register on them, but they only fire when `speckit.archive.run` is invoked.
 
 ## Installation
 
 You can install this extension via the Spec-Kit CLI:
 
 ```bash
-specify extension add archive --from https://github.com/stn1slv/spec-kit-archive/archive/refs/tags/v1.1.1.zip
+specify extension add archive --from https://github.com/stn1slv/spec-kit-archive/archive/refs/tags/v1.1.2.zip
 ```
-*(Note: Replace `v1.1.1` with the latest release version)*
+*(Note: Replace `v1.1.2` with the latest release version)*
 
 ## Usage
 

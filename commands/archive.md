@@ -1,11 +1,14 @@
 ---
 description: "Archive a feature specification into main project memory after merge, resolving gaps and conflicts"
+argument-hint: "specs/###-feature-name [--spec-only|--plan-only|--changelog-only|--agent-only]"
 scripts:
   sh: ../../scripts/bash/check-prerequisites.sh --json --paths-only
   ps: ../../scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly
 ---
 Act as the **Chief Software Architect** and **Documentation Maintainer**.
 A feature has been merged into the `main` branch. Your goal is to **archive** the feature specification into the main project memory — ensuring completeness, resolving conflicts, closing gaps, and respecting the project constitution.
+
+**Completeness means nothing is lost from the feature's own artifacts.** It does **not** mean filling gaps from elsewhere. See **Allowed Sources** below, which bounds every step of this command.
 
 ## User Input
 
@@ -53,6 +56,31 @@ If **several** scope modifiers are supplied, the scope is their **union** — `-
 
 ---
 
+## Allowed Sources (hard boundary)
+
+Everything you write into main project memory must come from the files below. **This list is complete.**
+
+- The artifacts inside `FEATURE_DIR` — inventoried in 0.3, read in Step 1
+- The existing files in `.specify/memory/`
+- `.specify/templates/` — seed templates only, for Step 0.4
+- `.specify/extensions.yml` — hook registration only, for Steps 0.6 and 7.1
+- The agent knowledge file in `REPO_ROOT` (GEMINI.md / AGENTS.md / CLAUDE.md), for Step 5.3
+- The output of `{SCRIPT}`
+
+**Take content from nowhere else.** Not from git history, `git log`, `git show`, stashes, other branches, or any file that was deleted or renamed. Not from ad-hoc notes files. Not from an agent memory or session store. Not from another feature's spec directory: other features reach main memory only by being archived in their own run.
+
+*One narrow exception:* when the **Legacy refs** edit rule asks you to upgrade an existing `[Source: specs/###-feature-name]` ref, you may open that feature's `spec.md` **solely to identify which item the ref points at**. Take no content from it. If the item cannot be identified, use the fallback form the rule already provides.
+
+**Never recover a missing artifact's previous content.** This forbids *recovering old content*, not *creating files*: Step 0.4 creating an **empty seed** for a missing memory artifact is required and unaffected. If a file above is absent, treat it as absent — Step 0.2 stops when a required feature file is missing, and a missing memory artifact counts as empty. What you must not do is go looking for that file's earlier contents in git history or a backup and continue from them. That turns a first archival into something neither you nor the user can reproduce.
+
+**Why this is strict.** An item-level `[Source: specs/###-feature/spec.md -> FR-012]` ref asserts that an entry came from a specific item in a specific feature spec. Content pulled from anywhere else still gets a ref, so the ref becomes false. This boundary is what makes the traceability mean anything.
+
+**This bounds content, not tooling.** Running `git status` or `git diff --check` to verify what you just wrote is fine. Reading git to *obtain* requirements, plans, or prior memory to archive is not.
+
+Report compliance under `## Sources` in Step 6.
+
+---
+
 ## Step 0: Setup & Validation (Gate)
 
 ### 0.1 Resolve Paths
@@ -64,7 +92,7 @@ Resolve paths **in this order** — each step depends on the one before it, so d
 - **If `{SCRIPT}` is missing**, stop and inform the user. The script ships with Spec-Kit, so its absence means this is not an initialized Spec-Kit project and nothing else in this command can be relied on.
 - **If `{SCRIPT}` runs but exits non-zero** — commonly `Feature directory not found` on a clean `main` checkout with no `.specify/feature.json` — this is **not** fatal. Its feature directory is not used anyway (see step 2). Recover `REPO_ROOT` by resolving the first token of `$ARGUMENTS` against the **current working directory** and walking up to the nearest ancestor containing `.specify/`. Note the fallback in the Step 6 report. Stop only if no such ancestor exists.
 
-**2. `FEATURE_DIR` — the argument always wins.** Resolve the first token of `$ARGUMENTS` under `REPO_ROOT`, applying the **ambiguous first token** check from Input Parsing at this point: it must match exactly one existing directory, and a numeric prefix such as `specs/001` may expand only when the match is unique. That directory is `FEATURE_DIR`.
+**2. `FEATURE_DIR` — the argument always wins.** Resolve the first token of `$ARGUMENTS` **under `REPO_ROOT`**, not under the current working directory, even when step 1's fallback started from cwd — the walk-up has already established `REPO_ROOT` by then, and a run invoked from a subdirectory would otherwise reject a perfectly valid `specs/001-x`. Apply the **ambiguous first token** check from Input Parsing at this point: it must match exactly one existing directory, and a numeric prefix such as `specs/001` may expand only when the match is unique. That directory is `FEATURE_DIR`.
 
 Ignore whatever feature directory `{SCRIPT}` reports. The script resolves it from the project's own state (`SPECIFY_FEATURE_DIRECTORY`, then `.specify/feature.json`), which is whichever feature was last worked on, **not** the one being archived; archival runs after a merge, so the two routinely differ. When they differ, report both in Step 6 so a user who passed the wrong path can see it.
 
@@ -169,7 +197,7 @@ Check if `REPO_ROOT/.specify/extensions.yml` exists:
 
 ## Step 1: Feature Analysis
 
-Read the feature specification and extract:
+Read the feature specification and extract the following. These files, in `FEATURE_DIR`, are the **only** source of feature content (see **Allowed Sources**). If something you expect is not in them, it is not available: record the gap in Step 2.3 rather than looking for it elsewhere.
 
 **From spec.md:**
 - User Stories / Integration Scenarios (with priorities and acceptance criteria)
@@ -536,6 +564,9 @@ Output the following structured report. Use **absolute paths** for all file refe
 | `/absolute/path/to/changelog.md` | New entry for [feature name] |
 | `/absolute/path/to/GEMINI.md` | Recent Changes, Known Issues |
 
+## Sources
+[Confirm every change came only from the Allowed Sources. Name anything you needed but could not find, and state that you did not reconstruct it. If you consulted git or any other tool to verify your own writes rather than to obtain content, say so here.]
+
 ## Path Resolution
 [`FEATURE_DIR` and how it was resolved. Note it when `{SCRIPT}` reported a different feature directory, or when the script failed and `REPO_ROOT` was derived by walking up from the argument. Otherwise "Resolved from argument".]
 
@@ -607,6 +638,7 @@ Provide actionable next steps:
 
 ## Done Criteria
 
+- All content taken only from the Allowed Sources. Nothing reconstructed from git history, deleted files, notes, or an agent memory store.
 - All non-conflicting feature content merged into main memory artifacts.
 - Feature content folded into existing entries where equivalent, each carrying item-level source refs. No pre-existing entry merged into another.
 - Confirmed supersessions applied, their IDs retired, and one `RETIRED:` line opened at removal and closed out by 5.1 step 9 — none left `<pending>`. Unresolved contradictions recorded in the top-level changelog section so the next run re-raises them, or reported as "deferred and unrecorded" when scope prevented that. Nothing removed without explicit confirmation.

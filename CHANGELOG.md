@@ -5,6 +5,38 @@ All notable changes to the Archive extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-08-09
+
+### Fixed
+
+- The command now states the complete list of files it may take content from, and forbids
+  everything else. It previously said what to read but never that this was the only permitted
+  source, so an agent asked to "ensure completeness" would consult git history, `git log`,
+  notes files, or its own memory store, and in one reported run recovered a deleted
+  `.specify/memory/spec.md` and continued from it. That makes runs non-reproducible, bypasses
+  the first-archival bootstrap entirely, and — because content from outside still receives an
+  item-level `[Source: ...]` ref — makes the traceability refs assert a provenance that is not
+  true. Missing artifacts are now explicitly never reconstructed, and the Step 6 report has a
+  `## Sources` section confirming where content came from. Verifying your own writes with git
+  is still allowed; reading git for content is not (#3).
+- The first token now resolves under `REPO_ROOT` rather than the current working directory.
+  Invoked from a subdirectory, a valid `specs/###-feature-name` could previously be rejected
+  as "does not resolve to exactly one feature directory" (#3).
+
+### Added
+
+- `argument-hint` frontmatter, so the expected argument shape is visible where the command is
+  invoked rather than only in the rejection message. Spec-Kit preserves it into the generated
+  Claude `SKILL.md` for extension commands.
+
+### Changed
+
+- Dropped `requires.scripts` from `extension.yml`. It is not part of the manifest schema and
+  the validator ignores unknown keys under `requires`, so it never had any effect. The command
+  already handles a missing `check-prerequisites.sh` itself in Step 0.1.
+- README now states that `before_archive` / `after_archive` are extension-defined events, not
+  core Spec-Kit ones.
+
 ## [1.1.1] - 2026-08-09
 
 ### Fixed

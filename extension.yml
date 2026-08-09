@@ -2,15 +2,13 @@ schema_version: "1.0"
 extension:
   id: "archive"
   name: "Archive Extension"
-  version: "1.1.1"
+  version: "1.1.2"
   description: "Archive merged features into main project memory, resolving gaps and conflicts."
   author: "Stanislav Deviatov"
   repository: "https://github.com/stn1slv/spec-kit-archive"
   license: "MIT"
 requires:
   speckit_version: ">=0.1.0"
-  scripts:
-    - "check-prerequisites.sh"
 provides:
   commands:
     - name: "speckit.archive.run"
