@@ -17,6 +17,8 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ### Input Parsing
 
+**This command archives exactly one feature per run.** There is no batch or range mode. To archive several features, run the command once per feature in ascending feature order, so each run sees the result of the one before it.
+
 Parse `$ARGUMENTS` as follows:
 - **First token**: feature spec directory path (e.g., `specs/007-invoice-settings`)
 - **Remaining tokens**: scope modifiers (optional, space-separated)
@@ -29,7 +31,19 @@ Parse `$ARGUMENTS` as follows:
 
 If **several** scope modifiers are supplied, the scope is their **union** — `--spec-only --changelog-only` updates both `spec.md` and `changelog.md` and nothing else. "Only" bounds the whole set, not each flag individually.
 
-If `$ARGUMENTS` is empty, output `ERROR: No feature spec directory provided. Usage: /speckit.archive.run specs/###-feature-name [--scope-modifier]` and stop.
+**Reject anything else.** The first three checks are textual and run before Step 0; the fourth needs `REPO_ROOT` and so runs as soon as 0.1 has resolved it, still ahead of every write. **No file is written when any of them fails** — a rejected invocation must leave the repository exactly as it found it. Do not guess at the intent of input you cannot parse.
+
+- **Empty input.** Output `ERROR: No feature spec directory provided. Usage: /speckit.archive.run specs/###-feature-name [--scope-modifier]` and stop.
+- **Unrecognized token.** If any token after the first is not one of the four modifiers above, output `ERROR: Unrecognized argument '[token]'. Supported: --spec-only, --plan-only, --changelog-only, --agent-only.` and stop.
+- **More than one feature.** If the input names several feature directories, contains a glob (`*`, `?`), or expresses a range (`thru`, `through`, `to`, `..` between two paths), output:
+  ```
+  ERROR: This command archives one feature per run — no ranges or globs.
+  Run it once per feature, in ascending order:
+    /speckit.archive.run specs/001-first-feature
+    /speckit.archive.run specs/002-second-feature
+  ```
+  and stop.
+- **Ambiguous first token** (checked in 0.1, once `REPO_ROOT` is known). The first token must resolve to **exactly one** existing directory under `REPO_ROOT`. A numeric prefix such as `specs/001` may expand to `specs/001-name-of-feature` only when exactly one directory matches. If nothing matches, or more than one does, output `ERROR: '[token]' does not resolve to exactly one feature directory` — listing the matches when there are several — and stop.
 
 ---
 
@@ -37,13 +51,23 @@ If `$ARGUMENTS` is empty, output `ERROR: No feature spec directory provided. Usa
 
 ### 0.1 Resolve Paths
 
-Run `{SCRIPT}` to identify the active feature directory and its artifacts. This script is mandatory for path discovery. If the script is missing, stop and inform the user.
+Run `{SCRIPT}` to resolve the repository root and validate the environment.
 
 Derive absolute paths for:
 - `REPO_ROOT` (from `{SCRIPT}` output)
-- `FEATURE_DIR` (from `{SCRIPT}` output)
+- `FEATURE_DIR` — see the precedence rule below
 - `MEMORY_DIR` (`REPO_ROOT / .specify/memory`)
 - `TEMPLATES_DIR` (`REPO_ROOT / .specify/templates`)
+
+**`FEATURE_DIR` precedence — the argument wins.** The script resolves a feature directory from the project's own state (`SPECIFY_FEATURE_DIRECTORY`, then `.specify/feature.json`); that is whichever feature was last worked on, **not** the one being archived. Archival runs after a merge, so the two routinely differ.
+
+- The first token of `$ARGUMENTS` **is** `FEATURE_DIR`, resolved to an absolute path under `REPO_ROOT`.
+- Fall back to the script's feature directory only if `$ARGUMENTS` supplies no path, which Input Parsing already rejects.
+- If the two disagree, proceed with the argument and report both in Step 6, so a user who passed the wrong path can see it.
+
+**If `{SCRIPT}` is missing**, stop and inform the user.
+
+**If `{SCRIPT}` runs but exits non-zero** — commonly `Feature directory not found` on a clean `main` checkout with no `.specify/feature.json` — this is **not** fatal on its own, because the argument already supplies `FEATURE_DIR`. Determine `REPO_ROOT` by walking up from the argument path to the nearest directory containing `.specify/`, continue, and note the fallback in the Step 6 report. Stop only if `REPO_ROOT` cannot be determined that way.
 
 **Path convention**: Feature specs live in `specs/{###-feature-name}/` at repo root. Use absolute paths for all file operations.
 
@@ -83,14 +107,18 @@ Check if `MEMORY_DIR` exists:
 mkdir -p MEMORY_DIR
 ```
 
+**Bootstrapping creates an empty seed, never content.** Step 1 has not run yet, so nothing has been extracted from the feature. The seed exists only so 5.1 and 5.2 have a structured file to write into, exactly as they do on every later run. Populating here instead would bypass the merge steps and is how a first archival ends up half-empty.
+
 **If `MEMORY_DIR/spec.md` does not exist** (first archival):
-- If `TEMPLATES_DIR/spec-template.md` exists, copy it as the seed and populate from the feature spec
-- Otherwise, create `spec.md` with the feature's spec content as the initial main spec
+- If `TEMPLATES_DIR/spec-template.md` exists, copy it as the seed and **leave its sections empty**, removing template placeholder text
+- Otherwise, create `spec.md` containing the section headings the feature spec uses, all empty
+- **Do not populate it here** — 5.1 fills it
 - Note in the report: "Bootstrapped `.specify/memory/spec.md` from first feature"
 
 **If `MEMORY_DIR/plan.md` does not exist** (first archival):
-- If `TEMPLATES_DIR/plan-template.md` exists, copy it as the seed and populate from the feature plan
-- Otherwise, create `plan.md` with the feature's plan content as the initial main plan
+- If `TEMPLATES_DIR/plan-template.md` exists, copy it as the seed and **leave its sections empty**, removing template placeholder text
+- Otherwise, create `plan.md` containing the section headings the feature plan uses, all empty
+- **Do not populate it here** — 5.2 fills it
 - Note in the report: "Bootstrapped `.specify/memory/plan.md` from first feature"
 
 ### 0.5 Load Constitution (Guardrails)
@@ -170,7 +198,7 @@ Read the feature specification and extract:
 
 Before merging, systematically check for issues.
 
-**Bootstrapped spec (applies to 2.2 and 2.4).** If `.specify/memory/spec.md` was bootstrapped from this same feature in Step 0.4, the main spec *is* the feature's content. Comparing the feature against its own copy would flag every requirement as a collision and every restatement as a supersession, so **skip 2.2 and 2.4 entirely** in that case. A feature cannot collide with, or supersede, itself.
+**Bootstrapped spec (applies to 2.2, 2.3, and 2.4).** If `.specify/memory/spec.md` was bootstrapped in Step 0.4 it is an empty seed: there is no prior content to collide with, nothing that could be superseded, and every item is trivially "missing" from main memory. **Skip 2.2, 2.3, and 2.4 entirely** in that case — 5.1 populates the seed, which is what closes those gaps. 2.1 still runs: the constitution is independent of the main spec.
 
 ### 2.1 Constitution Compliance (CRITICAL)
 
@@ -211,7 +239,7 @@ Categorize discrepancies between the feature spec and main memory:
 
 ### 2.4 Supersession Candidates
 
-**Skip this step** if the spec was bootstrapped from this feature (see the Step 2 preamble) or if `spec.md` is not in scope.
+**Skip this step** if the spec was bootstrapped in Step 0.4 (see the Step 2 preamble) or if `spec.md` is not in scope.
 
 Otherwise, identify entries in `.specify/memory/spec.md` that this feature **wholly replaces**. Look for:
 
@@ -347,7 +375,7 @@ Each step below **consolidates** into the existing section rather than appending
 
 **Removals come first.** Step 1 applies the confirmed supersessions, before any merging. Nothing can then be folded into an entry that is about to be deleted.
 
-**First run.** If `spec.md` was bootstrapped from this same feature in Step 0.4, its content is already the feature's content. Do not merge the feature into its own copy: skip the merging in steps 2–8 and only attach source refs to the bootstrapped entries. (Step 2.4 has already been skipped for the same reason, so step 1 has nothing to apply.)
+**First run.** If `spec.md` was bootstrapped in Step 0.4 it is an empty seed, so steps 2–8 run **normally** — they populate empty sections instead of folding into existing entries. There is nothing to merge against and nothing to double-count, and source refs are attached exactly as on any other run. This is the run that puts the first feature into main memory, so nothing Step 1 extracted may be left out. (Step 2.4 was skipped in Step 2, so step 1 has nothing to apply.)
 
 **Idempotency.** If this feature already has an entry in the Merged Features Log (`changelog.md`), this is a re-run. Update that entry in place rather than appending a second one, and never attach a source ref an entry already cites.
 
@@ -493,11 +521,14 @@ Output the following structured report. Use **absolute paths** for all file refe
 | `/absolute/path/to/changelog.md` | New entry for [feature name] |
 | `/absolute/path/to/GEMINI.md` | Recent Changes, Known Issues |
 
+## Path Resolution
+[`FEATURE_DIR` and how it was resolved. Note it when `{SCRIPT}` reported a different feature directory, or when the script failed and `REPO_ROOT` was derived by walking up from the argument. Otherwise "Resolved from argument".]
+
 ## Feature Status
 [List spec/plan files whose status was updated from Draft to Completed, or "No status fields found"]
 
 ## Bootstrapped
-[List any files that were created for the first time, or "None"]
+[List any files that were created for the first time, or "None". For a bootstrapped `spec.md`, confirm every category extracted in Step 1 is present in the file, or name the ones that are not and why.]
 
 ## Constitution Compliance
 [Confirm all merged content respects constitution constraints, or list any unresolved CRITICAL conflicts]
@@ -565,7 +596,7 @@ Provide actionable next steps:
 - Feature content folded into existing entries where equivalent, each carrying item-level source refs. No pre-existing entry merged into another.
 - Confirmed supersessions applied, their IDs retired, and one `RETIRED:` line opened at removal and closed out by 5.1 step 9 — none left `<pending>`. Unresolved contradictions recorded in the top-level changelog section so the next run re-raises them, or reported as "deferred and unrecorded" when scope prevented that. Nothing removed without explicit confirmation.
 - Constitution compliance verified for all merged content.
-- Memory directory bootstrapped if this was the first archival.
+- Memory directory bootstrapped if this was the first archival, and on that first archival every category Step 1 extracted is present in `spec.md` or its absence is stated in the report.
 - Feature spec `**Status**: Draft` updated to `Completed` (if applicable).
 - Conflicts either resolved (with user input) or marked with `NEEDS CLARIFICATION` (max 3).
 - Archival Report printed with absolute paths for all changed files, constitution status, and next steps.

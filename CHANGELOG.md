@@ -5,6 +5,25 @@ All notable changes to the Archive extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-08-09
+
+### Fixed
+
+- First archival no longer produces a near-empty `.specify/memory/spec.md`. Bootstrapping in
+  Step 0.4 ran before the extraction step and was told to "populate from the feature spec",
+  while the first-run rule in 5.1 then skipped the merge steps that fill the file. Extracted
+  content therefore had no defined path into `spec.md`. Bootstrapping now creates an empty
+  seed and 5.1 populates it like any other run (#3).
+- Unsupported invocations are rejected instead of being improvised. Ranges (`specs/001 thru
+  specs/008`), globs, unrecognized flags, and first tokens matching zero or several
+  directories now stop the command before any file is written. The command archives exactly
+  one feature per run, which is now stated in both the command and the README (#3).
+- `FEATURE_DIR` precedence is defined. Step 0.1 derived it from `check-prerequisites.sh` while
+  Input Parsing derived it from the first argument, with no stated winner. The script resolves
+  the last feature worked on rather than the one being archived, so the argument now wins, and
+  a disagreement is reported. A non-zero exit from the script is also handled instead of being
+  undefined (#3).
+
 ## [1.1.0] - 2026-08-04
 
 ### Added
