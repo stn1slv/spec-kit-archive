@@ -11,7 +11,7 @@ This extension acts as the "Outer Loop" of the Double-Loop Parity framework: it 
 ## Features
 
 - **Lifecycle Separation**: Operates purely on merging feature-level knowledge into project-level memory.
-- **Ecosystem Consistency**: Uses the core Spec-Kit `check-prerequisites.sh` script for reliable path resolution (handles monorepos and nested structures).
+- **Ecosystem Consistency**: Uses the core Spec-Kit `check-prerequisites.sh` script to locate the repository root (handles monorepos and nested structures). The feature to archive always comes from the path you pass, never from the script's own feature state, which points at whatever you worked on last rather than what you are archiving.
 - **Consolidation**: Folds each incoming feature item into the existing entry that covers the same ground, so the main spec stays a single consolidated specification instead of a per-feature digest. Existing entries are never merged into each other, so an established requirement ID cannot disappear behind your back.
 - **Traceability**: Adds item-level `[Source: specs/###-feature-name/spec.md -> FR-012]` refs and revision notes in the main memory artifacts. An entry consolidated from several features carries one ref per feature.
 - **Supersession**: Detects requirements a later feature wholly replaces and asks you to confirm before deleting anything. Confirmed removals are deleted from the main spec and recorded in `changelog.md`, and their IDs are never reissued. Anything you do not confirm stays put and is recorded as an unresolved contradiction, so the next archival raises it again instead of losing it.
@@ -42,7 +42,7 @@ You can optionally restrict the scope of the updates:
 
 ## Workflow
 
-1.  **Run `check-prerequisites.sh`** to find the active feature artifacts.
+1.  **Resolve paths**: run `check-prerequisites.sh` for the repository root, then take the feature directory from the path you passed.
 2.  **Verify Constitution Compliance**: Check that feature implementations don't violate project "MUSTs".
 3.  **Perform Impact Map**: Ask up to 5 clarifying questions before proceeding, including confirmation of any superseded requirements.
 4.  **Archive Data**: Consolidate entities, requirements, dependencies, and architecture notes into the main memory, and apply confirmed supersessions.

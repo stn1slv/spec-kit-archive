@@ -33,17 +33,22 @@ If **several** scope modifiers are supplied, the scope is their **union** — `-
 
 **Reject anything else.** The first three checks are textual and run before Step 0; the fourth needs `REPO_ROOT` and so runs as soon as 0.1 has resolved it, still ahead of every write. **No file is written when any of them fails** — a rejected invocation must leave the repository exactly as it found it. Do not guess at the intent of input you cannot parse.
 
-- **Empty input.** Output `ERROR: No feature spec directory provided. Usage: /speckit.archive.run specs/###-feature-name [--scope-modifier]` and stop.
-- **Unrecognized token.** If any token after the first is not one of the four modifiers above, output `ERROR: Unrecognized argument '[token]'. Supported: --spec-only, --plan-only, --changelog-only, --agent-only.` and stop.
-- **More than one feature.** If the input names several feature directories, contains a glob (`*`, `?`), or expresses a range (`thru`, `through`, `to`, `..` between two paths), output:
-  ```
-  ERROR: This command archives one feature per run — no ranges or globs.
-  Run it once per feature, in ascending order:
-    /speckit.archive.run specs/001-first-feature
-    /speckit.archive.run specs/002-second-feature
-  ```
-  and stop.
-- **Ambiguous first token** (checked in 0.1, once `REPO_ROOT` is known). The first token must resolve to **exactly one** existing directory under `REPO_ROOT`. A numeric prefix such as `specs/001` may expand to `specs/001-name-of-feature` only when exactly one directory matches. If nothing matches, or more than one does, output `ERROR: '[token]' does not resolve to exactly one feature directory` — listing the matches when there are several — and stop.
+1. **Empty input.** Output `ERROR: No feature spec directory provided. Usage: /speckit.archive.run specs/###-feature-name [--scope-modifier]` and stop.
+2. **More than one feature.** This check comes **before** the unrecognized-token check, so a range or a second path gets the guidance below rather than a generic parse error. Reject when the input covers more than one feature:
+   - two or more tokens that look like paths (contain `/`, or match `###-name`)
+   - a glob character (`*` or `?`) in any token
+   - a **standalone** token `thru`, `through`, `to`, or `..` sitting between two path-like tokens
+
+   Match these as **whole tokens only**. A directory name that merely contains one of the words is not a range: `specs/003-import-to-csv` and `specs/012-through-put` are legitimate single features, and `../specs/001-foo` is one relative path, not a range. On a match, output:
+   ```
+   ERROR: This command archives one feature per run — no ranges or globs.
+   Run it once per feature, in ascending order:
+     /speckit.archive.run specs/001-first-feature
+     /speckit.archive.run specs/002-second-feature
+   ```
+   and stop.
+3. **Unrecognized token.** If any remaining token after the first is not one of the four modifiers above, output `ERROR: Unrecognized argument '[token]'. Supported: --spec-only, --plan-only, --changelog-only, --agent-only.` and stop.
+4. **Ambiguous first token.** The first token must resolve to **exactly one** existing directory under `REPO_ROOT`. A numeric prefix such as `specs/001` may expand to `specs/001-name-of-feature` only when exactly one directory matches. If nothing matches, or more than one does, output `ERROR: '[token]' does not resolve to exactly one feature directory` — listing the matches when there are several — and stop. **This check needs `REPO_ROOT`, so it is performed in Step 0.1**, which states where it falls in the sequence.
 
 ---
 
@@ -51,23 +56,20 @@ If **several** scope modifiers are supplied, the scope is their **union** — `-
 
 ### 0.1 Resolve Paths
 
-Run `{SCRIPT}` to resolve the repository root and validate the environment.
+Resolve paths **in this order** — each step depends on the one before it, so do not reorder them.
 
-Derive absolute paths for:
-- `REPO_ROOT` (from `{SCRIPT}` output)
-- `FEATURE_DIR` — see the precedence rule below
+**1. `REPO_ROOT`.** Run `{SCRIPT}` and take `REPO_ROOT` from its output.
+
+- **If `{SCRIPT}` is missing**, stop and inform the user. The script ships with Spec-Kit, so its absence means this is not an initialized Spec-Kit project and nothing else in this command can be relied on.
+- **If `{SCRIPT}` runs but exits non-zero** — commonly `Feature directory not found` on a clean `main` checkout with no `.specify/feature.json` — this is **not** fatal. Its feature directory is not used anyway (see step 2). Recover `REPO_ROOT` by resolving the first token of `$ARGUMENTS` against the **current working directory** and walking up to the nearest ancestor containing `.specify/`. Note the fallback in the Step 6 report. Stop only if no such ancestor exists.
+
+**2. `FEATURE_DIR` — the argument always wins.** Resolve the first token of `$ARGUMENTS` under `REPO_ROOT`, applying the **ambiguous first token** check from Input Parsing at this point: it must match exactly one existing directory, and a numeric prefix such as `specs/001` may expand only when the match is unique. That directory is `FEATURE_DIR`.
+
+Ignore whatever feature directory `{SCRIPT}` reports. The script resolves it from the project's own state (`SPECIFY_FEATURE_DIRECTORY`, then `.specify/feature.json`), which is whichever feature was last worked on, **not** the one being archived; archival runs after a merge, so the two routinely differ. When they differ, report both in Step 6 so a user who passed the wrong path can see it.
+
+**3. Remaining paths.**
 - `MEMORY_DIR` (`REPO_ROOT / .specify/memory`)
 - `TEMPLATES_DIR` (`REPO_ROOT / .specify/templates`)
-
-**`FEATURE_DIR` precedence — the argument wins.** The script resolves a feature directory from the project's own state (`SPECIFY_FEATURE_DIRECTORY`, then `.specify/feature.json`); that is whichever feature was last worked on, **not** the one being archived. Archival runs after a merge, so the two routinely differ.
-
-- The first token of `$ARGUMENTS` **is** `FEATURE_DIR`, resolved to an absolute path under `REPO_ROOT`.
-- Fall back to the script's feature directory only if `$ARGUMENTS` supplies no path, which Input Parsing already rejects.
-- If the two disagree, proceed with the argument and report both in Step 6, so a user who passed the wrong path can see it.
-
-**If `{SCRIPT}` is missing**, stop and inform the user.
-
-**If `{SCRIPT}` runs but exits non-zero** — commonly `Feature directory not found` on a clean `main` checkout with no `.specify/feature.json` — this is **not** fatal on its own, because the argument already supplies `FEATURE_DIR`. Determine `REPO_ROOT` by walking up from the argument path to the nearest directory containing `.specify/`, continue, and note the fallback in the Step 6 report. Stop only if `REPO_ROOT` cannot be determined that way.
 
 **Path convention**: Feature specs live in `specs/{###-feature-name}/` at repo root. Use absolute paths for all file operations.
 
@@ -109,17 +111,19 @@ mkdir -p MEMORY_DIR
 
 **Bootstrapping creates an empty seed, never content.** Step 1 has not run yet, so nothing has been extracted from the feature. The seed exists only so 5.1 and 5.2 have a structured file to write into, exactly as they do on every later run. Populating here instead would bypass the merge steps and is how a first archival ends up half-empty.
 
-**If `MEMORY_DIR/spec.md` does not exist** (first archival):
+**Seed only what this run will populate.** Bootstrap `spec.md` only when 5.1 is in scope, and `plan.md` only when 5.2 is in scope. Seeding a file the run then skips is worse than not seeding it: the empty file exists, so no later run bootstraps it, no later run recognises it as unfilled, and this feature's content is lost for good. When a scope modifier suppresses a bootstrap, skip it silently here and note in the report that the artifact is not yet seeded and a later full-scope run will create it.
+
+**If `MEMORY_DIR/spec.md` does not exist and `spec.md` is in scope** (first archival):
 - If `TEMPLATES_DIR/spec-template.md` exists, copy it as the seed and **leave its sections empty**, removing template placeholder text
 - Otherwise, create `spec.md` containing the section headings the feature spec uses, all empty
 - **Do not populate it here** — 5.1 fills it
-- Note in the report: "Bootstrapped `.specify/memory/spec.md` from first feature"
+- Note in the report: "Bootstrapped empty `.specify/memory/spec.md`; populated by 5.1"
 
-**If `MEMORY_DIR/plan.md` does not exist** (first archival):
+**If `MEMORY_DIR/plan.md` does not exist and `plan.md` is in scope** (first archival):
 - If `TEMPLATES_DIR/plan-template.md` exists, copy it as the seed and **leave its sections empty**, removing template placeholder text
 - Otherwise, create `plan.md` containing the section headings the feature plan uses, all empty
 - **Do not populate it here** — 5.2 fills it
-- Note in the report: "Bootstrapped `.specify/memory/plan.md` from first feature"
+- Note in the report: "Bootstrapped empty `.specify/memory/plan.md`; populated by 5.2"
 
 ### 0.5 Load Constitution (Guardrails)
 
@@ -198,7 +202,13 @@ Read the feature specification and extract:
 
 Before merging, systematically check for issues.
 
-**Bootstrapped spec (applies to 2.2, 2.3, and 2.4).** If `.specify/memory/spec.md` was bootstrapped in Step 0.4 it is an empty seed: there is no prior content to collide with, nothing that could be superseded, and every item is trivially "missing" from main memory. **Skip 2.2, 2.3, and 2.4 entirely** in that case — 5.1 populates the seed, which is what closes those gaps. 2.1 still runs: the constitution is independent of the main spec.
+**Empty comparison target (applies to 2.2, 2.3, and 2.4).** A check that compares this feature against a main-memory artifact means nothing when that artifact is empty: there is no prior content to collide with, nothing that could be superseded, and every item is trivially "missing". **Skip each check whose comparison target is empty** — whether it was seeded in Step 0.4 during this run, or is empty or absent for any other reason.
+
+Judge the two artifacts **separately**, because a run can have one populated and the other not:
+- Spec-side — 2.2 requirement ID collisions and entity redefinitions, the Requirements and Data Model rows of 2.3, and the whole of 2.4 — keys on `.specify/memory/spec.md`.
+- Plan-side — 2.2 dependency conflicts, and the Architecture, Integration and Testing rows of 2.3 — keys on `.specify/memory/plan.md`.
+
+So a populated plan still gets its dependency check when the spec is a fresh seed, and vice versa. 5.1 and 5.2 populate the seeds, which is what closes those gaps. 2.1 always runs: the constitution is independent of both.
 
 ### 2.1 Constitution Compliance (CRITICAL)
 
@@ -239,7 +249,7 @@ Categorize discrepancies between the feature spec and main memory:
 
 ### 2.4 Supersession Candidates
 
-**Skip this step** if the spec was bootstrapped in Step 0.4 (see the Step 2 preamble) or if `spec.md` is not in scope.
+**Skip this step** if `.specify/memory/spec.md` is empty (see the Step 2 preamble) or if `spec.md` is not in scope.
 
 Otherwise, identify entries in `.specify/memory/spec.md` that this feature **wholly replaces**. Look for:
 
@@ -364,7 +374,7 @@ This gives the user a preview before edits are applied. Include every confirmed 
 - **Legacy refs**: entries written in the older directory-level form (`[Source: specs/###-feature-name]`) carry no item ID. When you touch such an entry, upgrade the ref to `[Source: specs/###-feature-name/spec.md -> ID]` if the originating item can be identified, or to `[Source: specs/###-feature-name/spec.md]` if it cannot. Do not modify legacy refs on entries this feature does not touch.
 - Add a **Revision note** (date + reason) to each modified artifact.
 - Respect scoping hints — skip artifacts not in scope and explicitly note them. **Out of scope means not written, never not read**: artifacts outside the scope are still read when a rule requires it (for example collecting retired IDs or checking for a prior run in `changelog.md`).
-- **Detect and follow the project's existing ID convention** (FR-XXX, REQ-XXX, Flow1, US-XX, etc.). Continue the sequence from the highest existing ID in main memory. Never reuse or renumber existing IDs.
+- **Detect and follow the project's existing ID convention** (FR-XXX, REQ-XXX, Flow1, US-XX, etc.). Continue the sequence from the highest existing ID in main memory. Never reuse or renumber existing IDs. **On a first archival** the seed is empty, so there is no convention to detect and no highest ID: adopt the **feature spec's own** convention and carry its IDs across unchanged, so `FR-007` in the feature stays `FR-007` in main memory and its source ref matches. Do not renumber, and never inherit example IDs left behind by template placeholder text.
 - **Retired IDs are off-limits.** Before assigning any new ID, read `.specify/memory/changelog.md` **if that file exists** (on a first archival it does not yet) and collect the ID immediately following each `RETIRED:` marker. **Collect only that ID** — the rest of the line names the live replacement and must be ignored. Continue numbering above the highest ID found in **either** the main spec or that retired list, so a retired ID is never reissued even when it was the highest-numbered entry.
 - **When consolidating equivalent items, keep the earliest existing ID** and attach the later features' source refs to it. Never renumber the surviving entry.
 - **Constitution constraints must be respected** — do not merge content that violates them.
