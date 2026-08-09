@@ -5,6 +5,56 @@ All notable changes to the Archive extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-08-09
+
+### Fixed
+
+- The command now states the complete list of files it may take content from, and forbids
+  everything else. It previously said what to read but never that this was the only permitted
+  source, so an agent asked to "ensure completeness" would consult git history, `git log`,
+  notes files, or its own memory store, and in one reported run recovered a deleted
+  `.specify/memory/spec.md` and continued from it. That makes runs non-reproducible, bypasses
+  the first-archival bootstrap entirely, and — because content from outside still receives an
+  item-level `[Source: ...]` ref — makes the traceability refs assert a provenance that is not
+  true. Missing artifacts are now explicitly never reconstructed, and the Step 6 report has a
+  `## Sources` section confirming where content came from. Verifying your own writes with git
+  is still allowed; reading git for content is not (#3).
+- **Acceptance Scenarios are no longer dropped on archival.** Step 1 extracted user stories
+  "with priorities and acceptance criteria", but 5.1 only told the agent to preserve priority
+  ordering and never mentioned the scenarios, so they had no defined path into `spec.md` and
+  were silently lost. This is the same failure mode fixed in 1.1.1 for other categories,
+  surviving in the one category that was never listed in 5.1. The extraction wording now also
+  matches the template's own `Acceptance Scenarios` heading (#3).
+- A source item that carries no ID now has a defined citation form. The traceability rule
+  assumed every source item had an ID, so against a feature spec with unnumbered edge cases an
+  agent produced `-> Edge Cases`, naming a section rather than an item. The rule now falls back
+  to a quoted heading or opening phrase, then to the file-level form, and rejects bare section
+  names outright. Upgrading an older directory-level ref uses the same ladder, so an
+  identifiable but unnumbered item no longer drops straight to the file-level form (#3).
+- The `->` in a source ref is now defined. It means "came **from** this item in that file", and
+  never "this source item became that ID", which is how it had been misread (#3).
+- The allowlist entries name the steps that use each file descriptively rather than
+  restrictively. An earlier draft scoped `.specify/templates/` to "seed templates only, for
+  Step 0.4", which would have forbidden Step 5.3 from reading the agent-file template that
+  lives in the same directory.
+- The first token now resolves under `REPO_ROOT` rather than the current working directory.
+  Invoked from a subdirectory, a valid `specs/###-feature-name` could previously be rejected
+  as "does not resolve to exactly one feature directory" (#3).
+
+### Added
+
+- `argument-hint` frontmatter, so the expected argument shape is visible where the command is
+  invoked rather than only in the rejection message. Spec-Kit preserves it into the generated
+  Claude `SKILL.md` for extension commands.
+
+### Changed
+
+- Dropped `requires.scripts` from `extension.yml`. It is not part of the manifest schema and
+  the validator ignores unknown keys under `requires`, so it never had any effect. The command
+  already handles a missing `check-prerequisites.sh` itself in Step 0.1.
+- README now states that `before_archive` / `after_archive` are extension-defined events, not
+  core Spec-Kit ones.
+
 ## [1.1.1] - 2026-08-09
 
 ### Fixed

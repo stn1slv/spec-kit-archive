@@ -1,11 +1,14 @@
 ---
 description: "Archive a feature specification into main project memory after merge, resolving gaps and conflicts"
+argument-hint: "specs/###-feature-name [--spec-only|--plan-only|--changelog-only|--agent-only]"
 scripts:
   sh: ../../scripts/bash/check-prerequisites.sh --json --paths-only
   ps: ../../scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly
 ---
 Act as the **Chief Software Architect** and **Documentation Maintainer**.
 A feature has been merged into the `main` branch. Your goal is to **archive** the feature specification into the main project memory — ensuring completeness, resolving conflicts, closing gaps, and respecting the project constitution.
+
+**Completeness means nothing is lost from the feature's own artifacts.** It does **not** mean filling gaps from elsewhere. See **Allowed Sources** below, which bounds every step of this command.
 
 ## User Input
 
@@ -53,6 +56,33 @@ If **several** scope modifiers are supplied, the scope is their **union** — `-
 
 ---
 
+## Allowed Sources (hard boundary)
+
+Everything you write into main project memory must come from the files below. **This list is complete.**
+
+- The artifacts inside `FEATURE_DIR` (0.3 inventories them, Step 1 reads them)
+- The existing files in `.specify/memory/`, `constitution.md` among them (0.4, 0.5, Step 2, Step 5)
+- `.specify/templates/` — any template a step calls for; today the seed templates in Step 0.4 and the agent-file template in Step 5.3
+- `.specify/extensions.yml` (Steps 0.6 and 7.1)
+- The agent knowledge file in `REPO_ROOT` (GEMINI.md / AGENTS.md / CLAUDE.md), for Step 5.3
+- The output of `{SCRIPT}`
+
+The step numbers above are **descriptive, not restrictive**. This list bounds *which files* you may take content from, never *which step* may read one. If a step needs a file on this list, it may read it.
+
+**Take content from nowhere else.** Not from git history, `git log`, `git show`, stashes, other branches, or any file that was deleted or renamed. Not from ad-hoc notes files. Not from an agent memory or session store. Not from another feature's spec directory: other features reach main memory only by being archived in their own run.
+
+*One narrow exception:* when the **Legacy refs** edit rule asks you to upgrade an existing `[Source: specs/###-feature-name]` ref, you may open that feature's `spec.md` **solely to identify which item the ref points at**, and may copy that item's ID, or its heading or opening phrase, into the ref itself. Take nothing else from that file, and never into the entry's own text. If the item cannot be identified, use the fallback form the rule already provides.
+
+**Never recover a missing artifact's previous content.** This forbids *recovering old content*, not *creating files*: Step 0.4 creating an **empty seed** for a missing memory artifact is required and unaffected. If a file above is absent, treat it as absent — Step 0.2 stops when a required feature file is missing, and a missing memory artifact counts as empty. What you must not do is go looking for that file's earlier contents in git history or a backup and continue from them. That turns a first archival into something neither you nor the user can reproduce.
+
+**Why this is strict.** An item-level `[Source: specs/###-feature/spec.md -> FR-012]` ref asserts that an entry came from a specific item in a specific feature spec. Content pulled from anywhere else still gets a ref, so the ref becomes false. This boundary is what makes the traceability mean anything.
+
+**This bounds content, not tooling.** Running `git status` or `git diff --check` to verify what you just wrote is fine. Reading git to *obtain* requirements, plans, or prior memory to archive is not.
+
+Report compliance under `## Sources` in Step 6.
+
+---
+
 ## Step 0: Setup & Validation (Gate)
 
 ### 0.1 Resolve Paths
@@ -64,7 +94,7 @@ Resolve paths **in this order** — each step depends on the one before it, so d
 - **If `{SCRIPT}` is missing**, stop and inform the user. The script ships with Spec-Kit, so its absence means this is not an initialized Spec-Kit project and nothing else in this command can be relied on.
 - **If `{SCRIPT}` runs but exits non-zero** — commonly `Feature directory not found` on a clean `main` checkout with no `.specify/feature.json` — this is **not** fatal. Its feature directory is not used anyway (see step 2). Recover `REPO_ROOT` by resolving the first token of `$ARGUMENTS` against the **current working directory** and walking up to the nearest ancestor containing `.specify/`. Note the fallback in the Step 6 report. Stop only if no such ancestor exists.
 
-**2. `FEATURE_DIR` — the argument always wins.** Resolve the first token of `$ARGUMENTS` under `REPO_ROOT`, applying the **ambiguous first token** check from Input Parsing at this point: it must match exactly one existing directory, and a numeric prefix such as `specs/001` may expand only when the match is unique. That directory is `FEATURE_DIR`.
+**2. `FEATURE_DIR` — the argument always wins.** Resolve the first token of `$ARGUMENTS` **under `REPO_ROOT`**, not under the current working directory, even when step 1's fallback started from cwd — the walk-up has already established `REPO_ROOT` by then, and a run invoked from a subdirectory would otherwise reject a perfectly valid `specs/001-x`. Apply the **ambiguous first token** check from Input Parsing at this point: it must match exactly one existing directory, and a numeric prefix such as `specs/001` may expand only when the match is unique. That directory is `FEATURE_DIR`.
 
 Ignore whatever feature directory `{SCRIPT}` reports. The script resolves it from the project's own state (`SPECIFY_FEATURE_DIRECTORY`, then `.specify/feature.json`), which is whichever feature was last worked on, **not** the one being archived; archival runs after a merge, so the two routinely differ. When they differ, report both in Step 6 so a user who passed the wrong path can see it.
 
@@ -169,10 +199,10 @@ Check if `REPO_ROOT/.specify/extensions.yml` exists:
 
 ## Step 1: Feature Analysis
 
-Read the feature specification and extract:
+Read the feature specification and extract the following. These files, in `FEATURE_DIR`, are the **only** source of feature content (see **Allowed Sources**). If something you expect is not in them, it is not available: record the gap in Step 2.3 rather than looking for it elsewhere.
 
 **From spec.md:**
-- User Stories / Integration Scenarios (with priorities and acceptance criteria)
+- User Stories / Integration Scenarios, with their priorities **and their Acceptance Scenarios where the story has them** (the template's heading for these is `Acceptance Scenarios`; some specs call them acceptance criteria, and some state none)
 - Functional Requirements (detect the project's ID convention — e.g., FR-XXX, REQ-XXX, or unnumbered)
 - Non-Functional Requirements (if any)
 - Key Entities and their fields
@@ -376,7 +406,9 @@ This gives the user a preview before edits are applied. Include every confirmed 
 - **Only ever fold an incoming feature item into an existing entry.** Never merge two entries that both already exist in main memory. Accumulation came from appending incoming items, so this is enough to fix it, and it guarantees an existing main-memory ID can never disappear through consolidation.
 - **The surviving text of a merge must preserve every constraint** from all contributing entries. If one entry's wording would lose a condition, limit, or qualifier stated by the other, the two are **not** equivalent — keep them separate. A source ref must never point at an entry whose constraint was dropped.
 - Add an **item-level** `[Source: specs/###-feature-name/spec.md -> ID]` traceability ref to each merged entry (e.g. `[Source: specs/007-invoice/spec.md -> FR-012]`). An entry consolidated from several features carries one ref per contributing feature. Never attach a second ref for a feature the entry already cites.
-- **Legacy refs**: entries written in the older directory-level form (`[Source: specs/###-feature-name]`) carry no item ID. When you touch such an entry, upgrade the ref to `[Source: specs/###-feature-name/spec.md -> ID]` if the originating item can be identified, or to `[Source: specs/###-feature-name/spec.md]` if it cannot. Do not modify legacy refs on entries this feature does not touch.
+  - **How to read the arrow.** `file -> ID` means "this entry came **from** the item `ID`, which lives in that file". It points from a file to an item **inside** it. It never means "the source item became this ID": a source `User Story 1` folded into main memory's `User Story 6` is still cited as `-> User Story 1`, because the ref names where the content came from, not where it landed.
+  - **When the source item carries no ID.** A feature spec may number its requirements but leave edge cases or stories unnumbered, so there is no ID to cite. Quote the item's own heading or opening phrase instead: `[Source: specs/002-billing/spec.md -> "Card declined mid-checkout"]`. A bare section name such as `-> Edge Cases` is **not** acceptable — it names a section, not an item, so it identifies nothing. If no stable phrase exists either, use the file-level form `[Source: specs/002-billing/spec.md]`, the same fallback the Legacy refs rule uses.
+- **Legacy refs**: entries written in the older directory-level form (`[Source: specs/###-feature-name]`) carry no item ID. When you touch such an entry, upgrade the ref using **the same ladder as above** — the originating item's ID, else its heading or opening phrase in quotes, else `[Source: specs/###-feature-name/spec.md]` when the item cannot be identified at all. An identifiable but unnumbered item takes the middle rung; it does not fall to the file-level form. Do not modify legacy refs on entries this feature does not touch.
 - Add a **Revision note** (date + reason) to each modified artifact.
 - Respect scoping hints — skip artifacts not in scope and explicitly note them. **Out of scope means not written, never not read**: artifacts outside the scope are still read when a rule requires it (for example collecting retired IDs or checking for a prior run in `changelog.md`). A rule that reads a missing artifact treats it as empty rather than stopping, so no rule below needs its own existence check.
 - **Idempotency is judged per artifact, not per run.** This feature has already been merged into an artifact if that artifact carries source refs naming it, **or an entry naming it** — the changelog's Merged Features Log entry, or the agent file's Recent Changes bullet, neither of which carries source refs. Check the artifact you are about to write, not `changelog.md` on its behalf, because scope modifiers mean a feature can be present in `spec.md` while no changelog entry exists. When it is already present, update in place: never append a second copy, and never attach a source ref an entry already cites.
@@ -395,7 +427,7 @@ Each step below **consolidates** into the existing section rather than appending
 **Empty seed.** If `spec.md` is empty, the numbered steps below run **normally** and populate the empty sections; there is simply nothing to fold into. Nothing extracted in **Step 1 (Feature Analysis)** may be left out — that is the whole-command Step 1, not step 1 of the list below.
 
 1. **Apply confirmed supersessions** — see 5.1.1 below. This happens before everything else.
-2. **Merge User Stories / Integration Scenarios** — fold into an existing story when it covers the same user goal; otherwise add, maintaining priority ordering.
+2. **Merge User Stories / Integration Scenarios** — fold into an existing story when it covers the same user goal; otherwise add, maintaining priority ordering. **Carry each story's Acceptance Scenarios across with it.** They are what makes a story checkable, and a story archived without them loses the context that gives it meaning. When folding into an existing story, merge the two scenario lists and drop only exact duplicates. Never write a story without **the scenarios it has** — and never drop a story because it has none: if the feature spec states no scenarios for it, carry the story across anyway and name it under `## Outstanding Items` in the Step 6 report. Report it there rather than as a 2.3 gap: 2.3 ran back in Step 2, and on a first archival its Requirements row was skipped outright because the main spec was empty. Inventing scenarios is not an option; Allowed Sources forbids it.
 3. **Merge Functional Requirements** — fold into the existing requirement when it states the same capability; otherwise add, continuing from the highest existing ID. Group by domain/module if the spec is large.
 4. **Merge Key Entities** — add new entities; extend existing ones with new fields rather than restating the entity.
 5. **Merge Edge Cases and Error Handling** — fold cases describing the same failure mode into one entry.
@@ -536,6 +568,9 @@ Output the following structured report. Use **absolute paths** for all file refe
 | `/absolute/path/to/changelog.md` | New entry for [feature name] |
 | `/absolute/path/to/GEMINI.md` | Recent Changes, Known Issues |
 
+## Sources
+[Confirm every change came only from the Allowed Sources. Name anything you needed but could not find, and state that you did not reconstruct it. If you consulted git or any other tool to verify your own writes rather than to obtain content, say so here.]
+
 ## Path Resolution
 [`FEATURE_DIR` and how it was resolved. Note it when `{SCRIPT}` reported a different feature directory, or when the script failed and `REPO_ROOT` was derived by walking up from the argument. Otherwise "Resolved from argument".]
 
@@ -565,7 +600,7 @@ Output the following structured report. Use **absolute paths** for all file refe
 Or "None"]
 
 ## Outstanding Items
-[Any remaining `NEEDS CLARIFICATION` markers, or "None"]
+[Any remaining `NEEDS CLARIFICATION` markers. Also name any user story carried across with no Acceptance Scenarios, per 5.1 step 2 — the story is archived, but nothing states how to verify it. Or "None"]
 
 ## Defaults Applied
 [Any decisions made with reasonable defaults instead of asking, or "None"]
@@ -607,6 +642,7 @@ Provide actionable next steps:
 
 ## Done Criteria
 
+- All content taken only from the Allowed Sources. Nothing reconstructed from git history, deleted files, notes, or an agent memory store.
 - All non-conflicting feature content merged into main memory artifacts.
 - Feature content folded into existing entries where equivalent, each carrying item-level source refs. No pre-existing entry merged into another.
 - Confirmed supersessions applied, their IDs retired, and one `RETIRED:` line opened at removal and closed out by 5.1 step 9 — none left `<pending>`. Unresolved contradictions recorded in the top-level changelog section so the next run re-raises them, or reported as "deferred and unrecorded" when scope prevented that. Nothing removed without explicit confirmation.
