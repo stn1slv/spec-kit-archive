@@ -427,7 +427,7 @@ Each step below **consolidates** into the existing section rather than appending
 **Empty seed.** If `spec.md` is empty, the numbered steps below run **normally** and populate the empty sections; there is simply nothing to fold into. Nothing extracted in **Step 1 (Feature Analysis)** may be left out — that is the whole-command Step 1, not step 1 of the list below.
 
 1. **Apply confirmed supersessions** — see 5.1.1 below. This happens before everything else.
-2. **Merge User Stories / Integration Scenarios** — fold into an existing story when it covers the same user goal; otherwise add, maintaining priority ordering. **Carry each story's Acceptance Scenarios across with it.** They are what makes a story checkable, and a story archived without them loses the context that gives it meaning. When folding into an existing story, merge the two scenario lists and drop only exact duplicates. Never write a story without **the scenarios it has** — and never drop a story because it has none: if the feature spec states no scenarios for it, carry the story across anyway and record the absence as a gap in 2.3. Inventing scenarios is not an option; Allowed Sources forbids it.
+2. **Merge User Stories / Integration Scenarios** — fold into an existing story when it covers the same user goal; otherwise add, maintaining priority ordering. **Carry each story's Acceptance Scenarios across with it.** They are what makes a story checkable, and a story archived without them loses the context that gives it meaning. When folding into an existing story, merge the two scenario lists and drop only exact duplicates. Never write a story without **the scenarios it has** — and never drop a story because it has none: if the feature spec states no scenarios for it, carry the story across anyway and name it under `## Outstanding Items` in the Step 6 report. Report it there rather than as a 2.3 gap: 2.3 ran back in Step 2, and on a first archival its Requirements row was skipped outright because the main spec was empty. Inventing scenarios is not an option; Allowed Sources forbids it.
 3. **Merge Functional Requirements** — fold into the existing requirement when it states the same capability; otherwise add, continuing from the highest existing ID. Group by domain/module if the spec is large.
 4. **Merge Key Entities** — add new entities; extend existing ones with new fields rather than restating the entity.
 5. **Merge Edge Cases and Error Handling** — fold cases describing the same failure mode into one entry.
@@ -600,7 +600,7 @@ Output the following structured report. Use **absolute paths** for all file refe
 Or "None"]
 
 ## Outstanding Items
-[Any remaining `NEEDS CLARIFICATION` markers, or "None"]
+[Any remaining `NEEDS CLARIFICATION` markers. Also name any user story carried across with no Acceptance Scenarios, per 5.1 step 2 — the story is archived, but nothing states how to verify it. Or "None"]
 
 ## Defaults Applied
 [Any decisions made with reasonable defaults instead of asking, or "None"]
