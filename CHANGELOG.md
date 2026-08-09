@@ -19,6 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   true. Missing artifacts are now explicitly never reconstructed, and the Step 6 report has a
   `## Sources` section confirming where content came from. Verifying your own writes with git
   is still allowed; reading git for content is not (#3).
+- **Acceptance Scenarios are no longer dropped on archival.** Step 1 extracted user stories
+  "with priorities and acceptance criteria", but 5.1 only told the agent to preserve priority
+  ordering and never mentioned the scenarios, so they had no defined path into `spec.md` and
+  were silently lost. This is the same failure mode fixed in 1.1.1 for other categories,
+  surviving in the one category that was never listed in 5.1. The extraction wording now also
+  matches the template's own `Acceptance Scenarios` heading (#3).
+- A source item that carries no ID now has a defined citation form. The traceability rule
+  assumed every source item had an ID, so against a feature spec with unnumbered edge cases an
+  agent produced `-> Edge Cases`, naming a section rather than an item. The rule now falls back
+  to a quoted heading or opening phrase, then to the file-level form, and rejects bare section
+  names outright (#3).
+- The `->` in a source ref is now defined. It means "came **from** this item in that file", and
+  never "this source item became that ID", which is how it had been misread (#3).
 - The allowlist entries name the steps that use each file descriptively rather than
   restrictively. An earlier draft scoped `.specify/templates/` to "seed templates only, for
   Step 0.4", which would have forbidden Step 5.3 from reading the agent-file template that
