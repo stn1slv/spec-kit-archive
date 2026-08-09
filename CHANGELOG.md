@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   true. Missing artifacts are now explicitly never reconstructed, and the Step 6 report has a
   `## Sources` section confirming where content came from. Verifying your own writes with git
   is still allowed; reading git for content is not (#3).
+- The allowlist entries name the steps that use each file descriptively rather than
+  restrictively. An earlier draft scoped `.specify/templates/` to "seed templates only, for
+  Step 0.4", which would have forbidden Step 5.3 from reading the agent-file template that
+  lives in the same directory.
 - The first token now resolves under `REPO_ROOT` rather than the current working directory.
   Invoked from a subdirectory, a valid `specs/###-feature-name` could previously be rejected
   as "does not resolve to exactly one feature directory" (#3).

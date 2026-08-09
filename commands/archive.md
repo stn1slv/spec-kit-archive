@@ -60,12 +60,14 @@ If **several** scope modifiers are supplied, the scope is their **union** — `-
 
 Everything you write into main project memory must come from the files below. **This list is complete.**
 
-- The artifacts inside `FEATURE_DIR` — inventoried in 0.3, read in Step 1
-- The existing files in `.specify/memory/`
-- `.specify/templates/` — seed templates only, for Step 0.4
-- `.specify/extensions.yml` — hook registration only, for Steps 0.6 and 7.1
+- The artifacts inside `FEATURE_DIR` (0.3 inventories them, Step 1 reads them)
+- The existing files in `.specify/memory/`, `constitution.md` among them (0.4, 0.5, Step 2, Step 5)
+- `.specify/templates/` — the seed templates for Step 0.4, and the agent-file template for Step 5.3
+- `.specify/extensions.yml` (Steps 0.6 and 7.1)
 - The agent knowledge file in `REPO_ROOT` (GEMINI.md / AGENTS.md / CLAUDE.md), for Step 5.3
 - The output of `{SCRIPT}`
+
+The step numbers above are **descriptive, not restrictive**. This list bounds *which files* you may take content from, never *which step* may read one. If a step needs a file on this list, it may read it.
 
 **Take content from nowhere else.** Not from git history, `git log`, `git show`, stashes, other branches, or any file that was deleted or renamed. Not from ad-hoc notes files. Not from an agent memory or session store. Not from another feature's spec directory: other features reach main memory only by being archived in their own run.
 
