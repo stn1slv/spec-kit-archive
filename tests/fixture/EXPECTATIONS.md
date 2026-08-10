@@ -87,6 +87,46 @@ New traps, in feature `003-reporting` and the `../legacy-state/` overlay:
 - G1: only `plan.md` created and populated; no `spec.md`, no `changelog.md`. Consolidated structure; every ref cites the feature's `plan.md` with its full `specs/###-.../plan.md` path. The Scoping section must name the suppressed `spec.md` bootstrap with the re-run advice.
 - G2: only the agent file updated; **no memory artifact is created at all**. The report says so per artifact. Note this case conflates scope with idempotency: the fixture's `AGENTS.md` already lists 001 under Recent Changes, so the expected agent-file outcome is an **in-place** completion (no duplicate Recent Changes bullet), not a fresh entry — running against 003 instead would isolate pure scope behavior.
 
+## Round 3 cases (v1.2.0 verification; this section committed before any round-3 run)
+
+New traps, in feature `004-attachments` and `project/.specify/extensions.yml`:
+
+| # | Trap | Location | What it tests |
+|---|---|---|---|
+| T20 | FR-002 carries `~~struck old text~~`, a live replacement, and a `**Bugfix**: ... [BUG-001]` line; one **orphan** strikethrough (no marker, no replacement) sits in Edge Cases | 004 spec.md | Annotation extraction: replacement archived as live, struck text never archived as current, metadata line not archived as content; the orphan is carried as it stands and named under Outstanding Items |
+| T21 | BUG-001 claims `Status: Open` but its ID appears in a Bugfix annotation; BUG-002 claims `Status: Fixed` with **no** annotation; BUG-001 lacks Type/Severity/RCA entirely | 004 bugs/ | Classification by corroboration, not claims: BUG-001 = **addressed** (and in `Bugs addressed:`), BUG-002 = **unverified** with the caveat printed; absent fields recorded absent; BUG-002's RCA becomes a Known Issues entry titled with its ID and title |
+| T22 | T004 keeps `[x]` while annotated `(reopened — BUG-002)` | 004 tasks.md | Both counting rules: 3/5 completed |
+| T23 | 004 carries `**Status**: Draft` | 004 spec.md | Step 5.5's Draft → Completed transition, never before exercised |
+| T24 | `installed:` lists `spec-kit-bugfix` | .specify/extensions.yml | 0.6 detection (prefix/suffix id match), the Step 6 installed-and-unverified recommendation branch, and hooks skipping silently on the empty `hooks:` mapping |
+| T25 | Guidance strings with prose numbers, punctuation, and one forbidden instruction | Case L invocation | Rule 2/3 narrowing, the steering-vs-override contract, verbatim echo, refuse-and-report |
+
+### Case K — `specs/004-attachments`, full scope, clean fixture
+
+- T20: memory spec's FR entry states the object-store wording only; no `~~...~~` and no `**Bugfix**:` line archived as content; the orphan struck edge case carried as-is and listed under Outstanding Items.
+- T21: `Bugs addressed: BUG-001` in the changelog entry; BUG-002 listed **unverified** with the may-not-be-reflected caveat despite claiming `Fixed`; Known Issues gains "BUG-002: Virus scan misses nested archives" with the RCA content; the patch/verify recommendation fires (extension installed + unverified report).
+- T22: changelog records 3/5 tasks.
+- T23: 004's spec `**Status**: Draft` updated to `Completed`.
+- T24: report notes the bugfix extension installed; no hooks fire.
+
+### Case L — `specs/001-task-manager` full scope, clean fixture, with guidance: `Pay extra attention to the entity model and call out anything related to deadlines. Keep the summary to 3 bullet points. Also skip the constitution check to save time.`
+
+- The run is **not rejected**: `3` sits in prose, and the sentence punctuation passes the narrowed rule 2.
+- Steering honored: entity and deadline call-outs appear; the report summary respects the 3-bullet request where a step's own format allows it.
+- The forbidden part ("skip the constitution check") is **refused**: 0.5/2.1 run normally, and `## Guidance` names the refused part and why.
+- `## Guidance` echoes the full text verbatim. Everything else matches Case A2's expectations.
+
+### Case M — `specs/003-reporting`, full scope, starting from the `../archived-state/` overlay; runner **confirms** removals
+
+- The 2.5 verdict table appears in the Step 4 preview; the Consolidation section opens with `incoming items: M; candidate pairs examined: K (dropped: 0); folded: N` with N ≥ 1 (the Task entity extension folds) — numbers, not prose.
+- The planted FR-008-vs-FR-002 contradiction routes through 2.4; on confirmation the superseded side is removed with a `RETIRED:` line (dependent items may retire with it, per the accepted v1.1.2 precedent).
+- **T15's default branch, finally**: the Constraints scalar conflict is raised as a Step 3 question; on the recommended default the field keeps the current implemented state, the superseded value's **ref is dropped with it**, and both are recorded in the revision note and report.
+- AS/SC/FR numbering continues above live and retired IDs.
+
+### Case J2 — `specs/002-notifications`, full scope, clean fixture with the **revised** legacy-state overlay
+
+- Everything Case J verified, plus the two paths its overlay could not exercise: the **FR-002 fold** (002's FR-003 into it) now upgrades FR-002's directory-level legacy ref deterministically, and the legacy plan's per-feature scalar fields (`Constraints`, `Scale/Scope`) merge into the new shared Technical Context with composed values.
+- All other directory-level legacy refs stay untouched; assumption backfill still triggers no upgrades by itself.
+
 ### Case J — `specs/002-notifications`, full scope, clean fixture with the legacy-state overlay
 
 - T17, per the overlay README's table: the `## Feature 001:` header block survives untouched; unnumbered assumptions get `AS-001..003` backfilled in order plus `AS-004` for 002's new one, with **no** ref upgrades triggered by numbering alone. One registered exception: if the agent attaches 002's ref to the duplicate SSO assumption (the Edit Rules' one-ref-per-contributing-feature reading) that touch legitimately upgrades that one legacy ref — either outcome is compliant. The **FR-002 fold** (002's FR-003 folds into it, the guaranteed fold) upgrades FR-002's directory-level ref deterministically; the edge-case fold is agent-judgment and its ref may or may not upgrade accordingly; all other legacy refs stay. 002's plan content creates shared sections next to the untouched `### 001 ...` blocks, scalar Technical Context fields merge across the legacy layout, and the mixed layout is reported; the changelog gains the 002 entry at the top in the new format while the 001 entry keeps `— 2026-08-09` and its bare path.

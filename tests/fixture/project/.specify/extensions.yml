@@ -1,0 +1,5 @@
+installed:
+  - id: spec-kit-bugfix
+    version: "1.0.0"
+settings: {}
+hooks: {}
