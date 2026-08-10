@@ -24,7 +24,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 Parse `$ARGUMENTS` as follows:
 - **First token**: feature spec directory path (e.g., `specs/007-invoice-settings`)
-- **Remaining tokens**: scope modifiers (optional, space-separated)
+- **Then**: scope modifiers (optional, `--` flags immediately after the path), followed by optional free-form guidance text
 
 **Supported scope modifiers** (if none provided, update all artifacts):
 - `--spec-only` — update only `.specify/memory/spec.md`
@@ -34,12 +34,12 @@ Parse `$ARGUMENTS` as follows:
 
 If **several** scope modifiers are supplied, the scope is their **union** — `--spec-only --changelog-only` updates both `spec.md` and `changelog.md` and nothing else. "Only" bounds the whole set, not each flag individually.
 
-**Validate everything else.** The first three checks are textual and run before Step 0; the fourth needs `REPO_ROOT` and so runs as soon as 0.1 has resolved it, still ahead of every write. **No file is written when any of them fails** — a rejected invocation must leave the repository exactly as it found it. What survives the four checks is either a scope modifier or guidance text; there is no third category, and a token you cannot classify under those rules is a rejection, never a guess.
+**Validate everything else.** The first three checks are textual and run before Step 0; the fourth needs `REPO_ROOT` and so runs as soon as 0.1 has resolved it, still ahead of every write. **No file is written when any of them fails** — a rejected invocation must leave the repository exactly as it found it. What survives the four checks is a scope modifier or guidance text; there is no third category.
 
-1. **Empty input, or no feature at all.** If `$ARGUMENTS` is empty, **or the first token starts with `--`** (the feature path must come first, before any modifier), output `ERROR: No feature spec directory provided. Usage: /speckit.archive.run specs/###-feature-name [--scope-modifier]` and stop.
-2. **More than one feature.** This check comes **before** the unrecognized-token check, so a range or a second path gets the guidance below rather than a generic parse error. Reject when the input covers more than one feature:
-   - two or more tokens that reference a feature — a path containing `/`, or a bare feature number or name such as `007` or `007-invoice-settings`
-   - a glob character (`*` or `?`) in any token
+1. **Empty input, or no feature at all.** If `$ARGUMENTS` is empty, **or the first token starts with `--`** (the feature path must come first, before any modifier), output `ERROR: No feature spec directory provided. Usage: /speckit.archive.run specs/###-feature-name [--scope-modifier] [guidance]` and stop.
+2. **More than one feature.** This check comes **before** the flag check, so a range or a second path gets the guidance below rather than a generic parse error. Reject when the input covers more than one feature. The checks key on **feature-shaped tokens** — a token starting with `specs/`, or a bare feature number or name such as `007` or `007-invoice-settings` — so ordinary prose (`double-checked?`, `billing/invoicing`, `*emphasis*`) is not caught:
+   - two or more feature-shaped tokens
+   - a glob character (`*` or `?`) **inside a feature-shaped token** (`specs/00*`, `0??-export`)
    - a **word** range marker — `thru`, `through`, or `to` — appearing as a whole token between two feature references (`specs/001 thru specs/008`, `specs/001 thru 008`)
    - a `..` **separating two feature references inside a single token** (`specs/001..specs/008`, `001..008`)
 
@@ -51,7 +51,7 @@ If **several** scope modifiers are supplied, the scope is their **union** — `-
      /speckit.archive.run specs/002-second-feature
    ```
    and stop.
-3. **Unrecognized flag.** If any remaining token after the first starts with `--` and is not one of the four modifiers above, output `ERROR: Unrecognized flag '[token]'. Supported: --spec-only, --plan-only, --changelog-only, --agent-only.` and stop. Remaining tokens that do **not** start with `--` are **guidance text** (see Guidance Text below), not an error — rule 2 has already run, so guidance can never smuggle in a second feature, a range, or a glob.
+3. **Unrecognized flag.** Flags are recognized **only until the first non-flag token**: a `--` token in that leading position that is not one of the four modifiers gets `ERROR: Unrecognized flag '[token]'. Supported: --spec-only, --plan-only, --changelog-only, --agent-only.` and stops the run. From the first non-flag token onward, everything — including words that start with `--`, such as guidance about a `--force` flag — is **guidance text** (see Guidance Text below), taken verbatim. Rule 2 has already run, so guidance can never smuggle in a second feature, a range, or a glob.
 4. **Ambiguous first token.** The first token must resolve to **exactly one** existing directory under `REPO_ROOT`. A numeric prefix such as `specs/001` may expand to `specs/001-name-of-feature` only when exactly one directory matches. If nothing matches, or more than one does, output `ERROR: '[token]' does not resolve to exactly one feature directory` — listing the matches when there are several — and stop.
 
 ### Guidance Text
@@ -68,7 +68,7 @@ Guidance **steers, never overrides**. It may direct your attention and emphasis,
 
 When guidance asks for something on this list, do not comply and do not stop: run the command normally and state in the report which part of the guidance was set aside and why. Guidance makes runs harder to reproduce, so the Step 6 report echoes it verbatim under `## Guidance` — a reviewer can always see what shaped the run, and a run with no guidance is the reproducible baseline.
 
-One consequence of the ordering: rule 2 runs before guidance is classified, so a token that looks like a feature reference (a bare `007`, a `specs/...` path, a glob) is rejected as a second feature even when it was meant as guidance. Refer to other features by name in prose ("the invoice feature") when guidance must mention one.
+One consequence of the ordering: rule 2 runs before guidance is classified, so a **feature-shaped token** (a bare `007`, a `specs/...` path, a glob inside one) is rejected as a second feature even when it was meant as guidance. Ordinary prose and punctuation are safe; refer to other features by name in prose ("the invoice feature") when guidance must mention one.
 
 ---
 
@@ -76,7 +76,7 @@ One consequence of the ordering: rule 2 runs before guidance is classified, so a
 
 Everything you write into main project memory must come from the files below. **This list is complete.**
 
-- The artifacts inside `FEATURE_DIR`, **except the `bugs/` subdirectory** (see the exclusions below). 0.3 inventories these artifacts and Step 1 reads the main ones; `contracts/` also feeds the steps that ask about it (2.3's Integration gap row, 5.2's Routing), while `checklists/` and `quickstart.md` are inventoried and allowed should a step ask, though today none takes content from them
+- The artifacts inside `FEATURE_DIR` — the `bugs/` subdirectory only through the **two bounded reads** defined in the exclusions below, everything else fully. 0.3 inventories these artifacts and Step 1 reads the main ones; `contracts/` also feeds the steps that ask about it (2.3's Integration gap row, 5.2's Routing), while `checklists/` and `quickstart.md` are inventoried and allowed should a step ask, though today none takes content from them
 - The existing files in `.specify/memory/`, `constitution.md` among them (0.4, 0.5, Step 2, Step 5)
 - `.specify/templates/` — any template a step calls for; today the seed templates in Step 0.4, plus an agent-file template where one exists (recent spec-kit versions ship none — Step 5.3 does not depend on it)
 - `.specify/extensions.yml` (Steps 0.6 and 7.1)
@@ -87,7 +87,7 @@ The step numbers above are **descriptive, not restrictive**. This list bounds *w
 
 **Take content from nowhere else.** Not from git history, `git log`, `git show`, stashes, other branches, or any file that was deleted or renamed. Not from ad-hoc notes files. Not from an agent memory or session store. Not from another feature's spec directory: other features reach main memory only by being archived in their own run.
 
-**Two named exclusions inside otherwise-allowed locations.** First, a `bugs/` subdirectory of `FEATURE_DIR` (bugfix extensions write `BUG-###.md` reports into it) is **not a source of requirement text**: never merge a bug report's amendments into main memory, and never let one alter the text of an item being archived — in test runs this produced requirements silently rewritten from bug files, with the outcome depending on which agent ran the command. The sanctioned channel already exists: a bugfix extension's patch step writes its amendments into the feature's own `spec.md`/`plan.md`/`tasks.md`, which Step 1 reads normally (see **Bugfix annotations** there). Exactly **two bounded reads** of the report files are allowed: each report's header fields (bug ID, Type, Severity, `**Status**`) for the Step 1 audit and the 5.4 changelog record, and each report's `## Root Cause Analysis` for the agent file's Known Issues in 5.3. Nothing else. Second, the feature spec's `## Clarifications` section (the Q&A session log `/speckit.clarify` maintains) is **deliberately not archived**: clarify already integrates every accepted answer into the sections this command does archive, so its decisions arrive through them. Do not copy the log, and do not carry an empty `## Clarifications` heading into main memory.
+**Two bounded exclusions inside otherwise-allowed locations.** First, a `bugs/` subdirectory of `FEATURE_DIR` (bugfix extensions write `BUG-###.md` reports into it) is **not a source of requirement text**: never merge a bug report's amendments into main memory, and never let one alter the text of an item being archived — in test runs this produced requirements silently rewritten from bug files, with the outcome depending on which agent ran the command. The sanctioned channel already exists: a bugfix extension's patch step writes its amendments into the feature's own `spec.md`/`plan.md`/`tasks.md`, which Step 1 reads normally (see **Bugfix annotations** there). Exactly **two bounded reads** of the report files are allowed: each report's header fields (bug ID, Type, Severity, `**Status**`) for the Step 1 audit and the Step 6 status listing, and each report's `## Root Cause Analysis` for the agent file's Known Issues in 5.3. Nothing else — and the Step 6 `## Sources` section declares both reads whenever they happened. Second, the feature spec's `## Clarifications` section (the Q&A session log `/speckit.clarify` maintains) is **deliberately not archived**: clarify already integrates every accepted answer into the sections this command does archive, so its decisions arrive through them. Do not copy the log, and do not carry an empty `## Clarifications` heading into main memory.
 
 *One narrow exception:* when the **Legacy refs** edit rule asks you to upgrade an existing `[Source: specs/###-feature-name]` ref, you may open that feature's **corresponding artifacts** — `spec.md` for an entry in the main spec (plus `data-model.md` for an entity, which is often defined there), `plan.md` for an entry in the main plan — **solely to identify which item the ref points at**, and may copy that item's ID, or its heading or opening phrase, into the ref itself. Take nothing else from those files, and never into the entry's own text. If the item cannot be identified in any of them, **leave the directory-level ref as it is** and note it in the Step 6 report: a coarse ref that is true beats a file-level ref that guesses.
 
@@ -147,7 +147,7 @@ Note which of these exist in `FEATURE_DIR` (for use in later steps):
 - `checklists/` — quality tracking
 - `quickstart.md` — integration scenarios
 
-A `bugs/` directory may also exist (bugfix extensions such as `spec-kit-bugfix` write `BUG-###.md` reports into it). Inventory the report files if present. Only the two bounded reads defined in Allowed Sources apply to them — header fields for the Step 1 audit, Root Cause Analysis for 5.3 — and requirement text is never taken from them. Note also whether Step 0.6 found a bugfix extension installed: `bugs/` files with no bugfix extension installed are worth flagging as possibly stale, while an installed extension with unpatched reports means its patch step has not run.
+A `bugs/` directory may also exist (bugfix extensions such as `spec-kit-bugfix` write `BUG-###.md` reports into it). Inventory the report files if present. Only the two bounded reads defined in Allowed Sources apply to them — header fields for the Step 1 audit, Root Cause Analysis for 5.3 — and requirement text is never taken from them. (Step 0.6, which runs later, records whether a bugfix extension is installed; Step 6 combines that with this inventory and the Step 1 audit.)
 
 ### 0.4 Validate or Bootstrap Memory Directory
 
@@ -194,7 +194,7 @@ Read `MEMORY_DIR/constitution.md` if it exists. Extract:
 ### 0.6 Check Extension Hooks (before archival)
 
 Check if `REPO_ROOT/.specify/extensions.yml` exists:
-- If it exists, also note (for 0.3 and Step 6) whether the top-level `installed` list names a bugfix extension — an entry whose id contains `bug` (e.g. `bugfix`, `bug`). This is context only, never a gate: the `bugs/` handling keys on the files existing, not on the installer.
+- If it exists, also note (for Step 6) whether the top-level `installed` list names a bugfix extension — an entry whose id **is or starts with** `bug` or `bugfix` (merely containing `bug`, as in `debug-tools`, does not count). When the file or its `installed` list is absent, record "unknown" and move on. This is context only, never a gate: the `bugs/` handling keys on the files existing, not on the installer.
 - If it exists, read it and look for entries under `hooks.before_archive`
 - If the YAML cannot be parsed or is invalid, skip hook checking silently
 - Filter to only hooks where `enabled: true`
@@ -252,16 +252,16 @@ Read the feature specification and extract the following. These files, in `FEATU
 - Known issues and gotchas (for agent file merging)
 
 **From tasks.md (if exists):**
-- Count completed tasks: lines matching `- [X]` or `- [x]`
+- Count completed tasks: lines matching `- [X]` or `- [x]` — except a task carrying a `(reopened — BUG-NNN)` note, which counts as incomplete even when its checkbox still shows `[x]`
 - Count total tasks: lines matching `- [ ]` or `- [X]` or `- [x]`
 
 **From `bugs/` (if it exists) — a bounded audit, never content:**
-- Per report file, the header fields only: bug ID, Type, Severity, and `**Status**` (`Open`, `Patched`, or absent)
-- Per report file, the `## Root Cause Analysis` section — solely for the agent file's Known Issues merge in 5.3
-- Treat `**Status**` as unreliable: field experience is that bugs get documented well but rarely marked patched or verified. `Patched` is a claim, not a verification — never present it as one.
+- Per report file, the header fields only: bug ID, Type, Severity, and `**Status**`, whatever its value. Real reports vary: a field may be missing (record it as absent, never infer it), a status may say `Fixed` or anything else, and the root-cause section may not exist.
+- Per report file, the `## Root Cause Analysis` section (or none) — solely for the agent file's Known Issues merge in 5.3
+- **Classify each report**, and use this classification everywhere downstream: **addressed** — the report's ID appears in a `**Bugfix**:` annotation inside the feature artifacts (see below), so the patch demonstrably happened; **unverified** — everything else, *regardless of what its Status claims*. Field experience is that bugs get documented well but rarely marked patched or verified, so a status value is always a claim, never a corroboration.
 
 **Bugfix annotations inside the feature artifacts.** A bugfix extension's patch step amends the feature's own `spec.md`/`plan.md`/`tasks.md` and leaves markers. When extracting:
-- Text struck through with `~~...~~` is **superseded by a patch**: extract the live replacement wording only, and never archive struck-through text as current content.
+- Text struck through with `~~...~~` counts as **superseded by a patch** only when a `**Bugfix**:` marker or a live replacement wording sits in or beside the same entry: then extract the replacement only, and never archive the struck text as current content. Struck text with neither marker nor replacement is not a patch artifact you can interpret — carry it as it stands and name it under `## Outstanding Items`; dropping it silently would violate the completeness rule.
 - `**Bugfix**: [DATE] — [BUG-NNN] ...` lines are patch metadata, not requirements: do not archive them as content; collect the bug IDs they name for the changelog entry (5.4).
 - A task annotated `(reopened — BUG-NNN)` is an incomplete task; count it as such.
 
@@ -351,16 +351,17 @@ Report each candidate with the evidence quoted:
 
 ### 2.5 Consolidation Candidates (detection pass)
 
-The step that makes folding real. Without a detection pass, "zero duplicates" is a statement about not having looked — a field run against a 612-entry main spec folded nothing from 30 incoming items and reported zero duplicates, truthfully, because no step ever compared them. Skip this step when the comparison target is empty.
+The step that makes folding real. Without a detection pass, "zero duplicates" is a statement about not having looked — a field run against a 612-entry main spec folded nothing from 30 incoming items and reported zero duplicates, truthfully, because no step ever compared them. **Skip this step when the comparison target is empty or when `spec.md` is not in scope** (matching 2.4's guard — a contradiction verdict must never route work into a skipped step).
 
-1. **Key the incoming items.** For each story, requirement, edge case, outcome, and assumption extracted in Step 1, derive an **imperative-phrase slug**: lowercase actor-action-object, stripped of modality and filler — "System MUST send the task owner a notification 24 hours before the deadline" becomes `owner-deadline-notification`; "Users MUST be able to assign a task to exactly one owner" becomes `assign-task-single-owner`. Slugs are search keys for this step only; they are never written into any artifact. (This mirrors core `/speckit.analyze`, which keys its duplication pass the same way.)
-2. **Index the target section.** Derive the same slugs for the **existing** entries of each section that will receive incoming items — section by section, never the whole document at once, mirroring `/speckit.analyze`'s token-efficient passes. This is what keeps detection workable at several hundred entries.
-3. **Shortlist by slug overlap.** An incoming item and an existing entry form a candidate pair when their slugs share the core object and action tokens. Cap the shortlist at **20 pairs**; when more qualify, keep the 20 strongest overlaps and record how many were dropped.
+1. **Key the incoming items.** For each story, requirement, **entity**, edge case, outcome, and assumption extracted in Step 1, derive an **imperative-phrase slug**: lowercase actor-action-object, stripped of modality and filler — "System MUST send the task owner a notification 24 hours before the deadline" becomes `owner-deadline-notification`; "Users MUST be able to assign a task to exactly one owner" becomes `assign-task-single-owner`; an entity's slug is its name plus its distinguishing fields. Slugs are search keys for this step only; they are never written into any artifact. (The approach follows core `/speckit.analyze`'s token-efficient duplication pass; the procedure here is self-contained and does not depend on that command.)
+2. **Index the target section.** Derive the same slugs for the **existing** entries of each section that will receive incoming items — section by section, never the whole document at once. This is what keeps detection workable at several hundred entries.
+3. **Shortlist by slug overlap.** An incoming item and an existing entry form a candidate pair when their slugs share the **object noun and the action verb stem** (for entities: the same name, or the same object noun in their field lists). Rank candidates by the number of shared slug tokens, breaking ties by the incoming item's document order. Cap the shortlist at **20 pairs per target section**; when more qualify, keep the strongest by that ranking and name each dropped pair under `## Outstanding Items` with a recommendation to re-run after resolving the backlog — a dropped pair is unexamined, and its incoming item enters as a new entry, which is exactly the accumulation this step exists to prevent.
 4. **Judge each shortlisted pair by prose**, with exactly three verdicts:
-   - **fold** — same actor, capability, and object, and the constraints are compatible: one statement's conditions contain the other's, so the merged text keeps every constraint (the Edit Rules' preservation test passes)
-   - **separate** — same territory but genuinely different conditions, limits, or qualifiers; a merged text would lose one side's, so both entries stand
+   - **fold** — same actor, capability, and object, and the merged text can keep **every** constraint from both sides — because one side's conditions contain the other's, or because the merged wording states both (the Edit Rules' preservation test, verbatim)
+   - **separate** — same territory but genuinely different conditions, limits, or qualifiers that one merged statement cannot carry without losing a side; both entries stand
    - **contradiction** — the two cannot both hold; add the pair to 2.4's candidates and let the supersession flow handle it
-5. **Record the verdict table** — one line per pair: incoming item → existing entry → verdict. **This table is the whole warrant for folding**: 5.1 folds exactly the pairs marked fold and nothing else, which removes the judgment call that made two baseline runs treat the same pair differently. Rerunning without changes must reproduce the same table.
+   For **user stories**, judge by the same-user-goal test of 5.1 step 2 instead: two stories covering the same goal are **fold** even when their fields differ, because the block merge keeps both statements of a differing field; **separate** applies only when the goals differ.
+5. **Record the verdict table** — one line per pair: incoming item → existing entry → verdict — and include it in the Step 4 impact preview so the user sees the warrant before any edit. 5.1 folds exactly the pairs marked fold and nothing else. The keying, ranking, and tie-break rules above are fixed so that rerunning without changes reproduces the same shortlist; the verdicts themselves remain prose judgment, and the table's job is to **record** that judgment where it can be audited, instead of leaving it implicit in the writing step.
 
 ---
 
@@ -440,7 +441,7 @@ Before making any edits, produce a brief impact map:
 | `GEMINI.md` | Recent Changes, Known Issues | Append |
 ```
 
-This gives the user a preview before edits are applied. Include every confirmed supersession target as a `Remove` row.
+This gives the user a preview before edits are applied. Include every confirmed supersession target as a `Remove` row, and append the 2.5 verdict table below the map — the folds about to happen and the pairs judged separate are part of the preview.
 
 ---
 
@@ -449,7 +450,7 @@ This gives the user a preview before edits are applied. Include every confirmed 
 ### Edit Rules
 - Use absolute paths for all file references.
 - Preserve existing section layout and ordering. Consolidate *within* a section; do not reorganize the document.
-- **Consolidate, do not accumulate.** Merge each incoming item into the existing entry that already covers the same ground. Append a new entry only when no equivalent exists. The main spec is one consolidated specification, not a per-feature digest. **Which items fold is decided by the 2.5 verdict table**, not ad hoc while writing: fold the pairs it marks fold, keep its separate pairs separate, and never fold a pair it did not examine.
+- **Consolidate, do not accumulate.** Merge each incoming item into the existing entry that already covers the same ground. Append a new entry only when no equivalent exists. The main spec is one consolidated specification, not a per-feature digest. **For the categories 2.5 keys** (stories, requirements, entities, edge cases, outcomes, assumptions), which items fold is decided by the 2.5 verdict table, not ad hoc while writing: fold the pairs it marks fold, keep its separate pairs separate, and never fold a pair it did not examine. The plan (5.2) and the agent file (5.3) are outside 2.5's scope and follow their own steps' merge rules.
 - **Only ever fold an incoming feature item into an existing entry.** Never merge two entries that both already exist in main memory. Accumulation came from appending incoming items, so this is enough to fix it, and it guarantees an existing main-memory ID can never disappear through consolidation.
 - **The surviving text of a merge must preserve every constraint** from all contributing entries. If one entry's wording would lose a condition, limit, or qualifier stated by the other, the two are **not** equivalent — keep them separate. A source ref must never point at an entry whose constraint was dropped.
 - Add an **item-level** `[Source: specs/###-feature-name/<file> -> ID]` traceability ref to each merged entry, where `<file>` is the feature artifact the content actually came from: `spec.md` for spec items (e.g. `[Source: specs/007-invoice/spec.md -> FR-012]`), `plan.md` for plan-derived entries, `data-model.md` for entities it defines. A ref must never name `spec.md` for content that came from another artifact — that would assert a provenance that is not true. An entry consolidated from several features carries one ref per contributing feature; an entry drawing on two artifacts of the same feature (say `spec.md` and `data-model.md`) may carry one ref per artifact. Never attach a duplicate ref to a source the entry already cites.
@@ -467,7 +468,7 @@ This gives the user a preview before edits are applied. Include every confirmed 
 
 ### 5.1 Update Main Specification (`.specify/memory/spec.md`)
 
-Each step below **consolidates** into the existing section rather than appending a new per-feature block. Folding is governed by the **2.5 verdict table**: fold exactly the pairs it marks fold, keep its separate pairs as separate entries, and leave its contradiction pairs to the supersession flow.
+Each step below **consolidates** into the existing section rather than appending a new per-feature block. For the categories 2.5 keys, folding is governed by the **2.5 verdict table**: fold exactly the pairs it marks fold, keep its separate pairs as separate entries, and leave its contradiction pairs to the supersession flow. A fold pair whose existing entry was just removed by a confirmed supersession (step 1 below) has lost its target: the incoming item enters as a **new** entry instead, and the reversion is noted in the Step 6 report.
 
 **Removals come first.** Step 1 applies the confirmed supersessions, before any merging. Nothing can then be folded into an entry that is about to be deleted.
 
@@ -480,7 +481,7 @@ Each step below **consolidates** into the existing section rather than appending
 5. **Merge Edge Cases and Error Handling** — fold cases describing the same failure mode into one entry.
 6. **Update Data Flow / Architecture** if the feature changed system data flows.
 7. **Merge Success Criteria / Measurable Outcomes** if present. Fold outcomes measuring the same thing into one entry; otherwise continue from the highest existing ID (e.g., SC-XXX).
-8. **Merge Assumptions**: add new assumptions under the `## Assumptions` section (if the main spec lacks one, create it after Success Criteria to match the template's section order); skip any whose content is already recorded in main memory. **Number them**: assumptions carry `AS-###` IDs in the main spec, so they can be cited, deduplicated, and superseded like requirements. Do this in two passes, in this order. *First, backfill:* if the section holds assumptions with **no ID at all** (archived by an older version), number those, in their current order, continuing above the highest `AS` ID found in **either** the section or the changelog's retired list — the **Retired IDs are off-limits** rule applies to the `AS` sequence like any other. An assumption that already carries an ID, under `AS` or any other project convention, keeps it; never renumber. Backfilling adds a label and changes nothing else — it is **not** "touching" the entry for the Legacy refs rule, so it never by itself triggers a ref upgrade. *Then, new entries:* each assumption added this run continues above the highest `AS` ID after the backfill, again skipping retired IDs. For the source ref: most feature specs leave assumptions unnumbered, so the ref takes the quoted-phrase rung of the ladder; if the feature spec numbers its assumptions, cite the feature's own ID, as the ladder's first rung requires.
+8. **Merge Assumptions**: add new assumptions under the `## Assumptions` section (if the main spec lacks one, create it after Success Criteria to match the template's section order); skip any whose content is already recorded in main memory. A 2.5 **fold** verdict on an assumption pair means exactly this: keep the existing entry, attach the incoming feature's source ref per the Edit Rules, add no second copy — and count it as folded in the Consolidation numbers. **Number them**: assumptions carry `AS-###` IDs in the main spec, so they can be cited, deduplicated, and superseded like requirements. Do this in two passes, in this order. *First, backfill:* if the section holds assumptions with **no ID at all** (archived by an older version), number those, in their current order, continuing above the highest `AS` ID found in **either** the section or the changelog's retired list — the **Retired IDs are off-limits** rule applies to the `AS` sequence like any other. An assumption that already carries an ID, under `AS` or any other project convention, keeps it; never renumber. Backfilling adds a label and changes nothing else — it is **not** "touching" the entry for the Legacy refs rule, so it never by itself triggers a ref upgrade. *Then, new entries:* each assumption added this run continues above the highest `AS` ID after the backfill, again skipping retired IDs. For the source ref: most feature specs leave assumptions unnumbered, so the ref takes the quoted-phrase rung of the ladder; if the feature spec numbers its assumptions, cite the feature's own ID, as the ladder's first rung requires.
 9. **Close out the `RETIRED:` lines** opened in step 1. Every replacement ID is now settled, so fill in each line's replacement reference (see 5.1.1 step 3). Do not finish 5.1 with a `RETIRED:` line left incomplete.
 
 **Do not fold an incoming item into an entry you flagged in 2.4 as contradicting it.** Add it as a new entry instead, so the contradiction stays visible for the user to resolve rather than being silently merged away.
@@ -573,10 +574,10 @@ The entry's date is the **archival date**, which is why the header says `archive
 - RETIRED: FR-008 (from specs/004-export/spec.md) → no replacement. Reason: [one line]
 
 **Tasks Completed:** [completed]/[total] tasks
-**Bugs addressed:** [bug IDs collected from the feature's bugfix annotations in Step 1, e.g. BUG-001, BUG-003 — omit this line when none]
+**Bugs addressed:** [only the bug IDs the Step 1 audit classified **addressed** — corroborated by bugfix annotations in the feature artifacts, e.g. BUG-001, BUG-003. Never list a report on the strength of its Status claim. Omit this line when none]
 ```
 
-Count tasks using the checkbox format: `- [X]` or `- [x]` = completed; `- [ ]` = incomplete. If `tasks.md` does not exist, omit the "Tasks Completed" line.
+Count tasks using the checkbox format: `- [X]` or `- [x]` = completed; `- [ ]` = incomplete; a task with a `(reopened — BUG-NNN)` note = incomplete regardless of its checkbox (same rule as Step 1). If `tasks.md` does not exist, omit the "Tasks Completed" line.
 
 The **Superseded** block is a permanent audit trail of IDs removed from the main spec in 5.1.1, and belongs to the feature entry that removed them. It is **append-only across runs**: once a run has finished, its lines are immutable — never edit, reorder, or prune them. (Completing a line you opened earlier in the *current* run, per 5.1.1 step 3, is part of writing it, not a rewrite.) Omit the block when the feature retired nothing, and never add a line for a removal that did not happen.
 
@@ -644,7 +645,7 @@ Output the following structured report. Use **absolute paths** for all file refe
 [List any conflicts that were resolved and how, or "None"]
 
 ## Consolidation
-[Always give the 2.5 numbers first: `incoming items: M; candidate pairs examined: K (dropped by the shortlist cap: D); folded: N` — a zero must be legible as "examined and found distinct", never as "did not look". Then each fold, e.g. "this feature's equivalent requirement folded into FR-012, which now carries 2 source refs". Or "None (target was empty; 2.5 skipped)"]
+[Always give the 2.5 numbers first: `incoming items: M; candidate pairs examined: K (dropped by the shortlist cap: D); folded: N` — a zero must be legible as "examined and found distinct", never as "did not look". Then each fold, e.g. "this feature's equivalent requirement folded into FR-012, which now carries 2 source refs", and any fold verdict that reverted to a new entry because its target was retired. Or "None (target was empty; 2.5 skipped)" / "None (spec.md out of scope; 2.5 skipped)"]
 
 ## Superseded Requirements
 [Confirmed removals as `OLD-ID (retired) → replaced by NEW-ID` or `OLD-ID (retired, no replacement)`. Also list:
@@ -654,7 +655,7 @@ Output the following structured report. Use **absolute paths** for all file refe
 Or "None"]
 
 ## Outstanding Items
-[Any remaining `NEEDS CLARIFICATION` markers. Also name any user story carried across with no Acceptance Scenarios, per 5.1 step 2 — the story is archived, but nothing states how to verify it. Any story fold where the incoming priority differed from the existing entry's (the existing priority was kept). Any legacy directory-level ref left unchanged because its item could not be identified. If `FEATURE_DIR` contains a `bugs/` directory, list each report with its audited status (from Step 1) and state plainly: any `Open` or status-less bug may not be reflected in the archived spec, and no requirement text was taken from the reports (see Allowed Sources). When Step 0.6 found a bugfix extension installed and unpatched reports exist, recommend running its patch and verify steps before re-archiving; when reports exist but no bugfix extension is installed, note they may be stale. Or "None"]
+[Any remaining `NEEDS CLARIFICATION` markers. Also name any user story carried across with no Acceptance Scenarios, per 5.1 step 2 — the story is archived, but nothing states how to verify it. Any story fold where the incoming priority differed from the existing entry's (the existing priority was kept). Any legacy directory-level ref left unchanged because its item could not be identified. Any 2.5 candidate pairs dropped by the per-section shortlist cap (named individually, with a re-run recommendation). Any struck-through text carried as-is because it had neither a Bugfix marker nor a replacement. If `FEATURE_DIR` contains a `bugs/` directory, list each report with its Step 1 classification (**addressed** / **unverified**) and its claimed Status, and state plainly: every **unverified** report may not be reflected in the archived spec — *regardless of what its Status claims* — and no requirement text was taken from the reports (see Allowed Sources). When Step 0.6 found a bugfix extension installed and unverified reports exist, recommend running its patch and verify steps before re-archiving; when reports exist but no bugfix extension is installed, note they may be stale. Or "None"]
 
 ## Defaults Applied
 [Any decisions made with reasonable defaults instead of asking, or "None"]

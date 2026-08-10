@@ -34,8 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- 5.1 folding is gated on the 2.5 verdict table instead of ad-hoc judgment while writing —
-  two baseline runs folded the same pair differently, which this removes.
+- 5.1 folding of the spec-side categories is gated on the 2.5 verdict table instead of ad-hoc
+  judgment while writing — two baseline runs folded the same pair differently; the table
+  records that judgment where it can be audited and previewed before any edit.
 - The unrecognized-argument rejection narrowed to `--flags`; bare text is guidance.
 
 ## [1.1.3] - 2026-08-10
