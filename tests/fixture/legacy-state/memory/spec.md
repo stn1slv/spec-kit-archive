@@ -6,7 +6,8 @@
 
 **Feature Branch**: `001-task-manager`
 **Created**: 2026-07-01
-**Status at archive**: Implemented
+**Status**: Implemented
+**Input**: User description: "Small team task manager with owners and deadlines"
 
 ## User Scenarios & Testing
 
@@ -54,7 +55,7 @@ A user filters the task list to see only tasks due this week. [Source: specs/001
 ### Functional Requirements
 
 - **FR-001**: System MUST allow users to create tasks with a title, an optional description, and a deadline. [Source: specs/001-task-manager/spec.md -> FR-001]
-- **FR-002**: Users MUST be able to assign a task to exactly one owner. [Source: specs/001-task-manager/spec.md -> FR-002]
+- **FR-002**: Users MUST be able to assign a task to exactly one owner. [Source: specs/001-task-manager]
 - **FR-003**: System MUST show a paginated task list of 25 tasks per page, ordered by deadline. [Source: specs/001-task-manager/spec.md -> FR-003]
 - **FR-004**: Completed tasks MUST be kept forever and MUST never be deleted from the system. [Source: specs/001-task-manager/spec.md -> FR-004]
 - **FR-005**: System MUST flag a task as overdue when its deadline has passed and it is not completed. [Source: specs/001-task-manager/spec.md -> FR-005]
