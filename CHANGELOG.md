@@ -5,6 +5,54 @@ All notable changes to the Archive extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2026-08-10
+
+### Fixed
+
+- **User stories are archived as whole blocks.** 5.1 listed which story sub-fields to carry, and
+  any field not on the list survived only by agent whim: baseline testing showed one run keeping
+  the `Why this priority` lines and another silently dropping them — the fourth instance of the
+  same failure class (assumptions in 1.1.0, the merge-path gap in 1.1.1, acceptance scenarios in
+  1.1.2). The extraction and merge rules now carry each story's entire block, every labelled
+  field included, instead of an enumerated subset (#3).
+- **`bugs/` files can no longer rewrite archived requirements.** The Allowed Sources boundary was
+  location-based, so files a bugfix extension writes inside the feature directory were formally
+  permitted content: in baseline runs one agent rewrote FR text from a bug file's amendment and
+  cited it, while another refused to read the same file. `bugs/` is now a named exclusion — its
+  presence is reported, its content never merged. Native bug fold-in is planned as a separate
+  feature (#3).
+- **The `## Clarifications` session log has a defined fate: deliberately not archived.** Core
+  `/speckit.clarify` already integrates every accepted answer into the sections this command does
+  archive, so the log would duplicate them. Previously undefined, which produced an empty
+  `## Clarifications` heading in one field run and silent exclusion in others (#3).
+- **Memory artifacts no longer open with one feature's metadata.** Seeding copied the template's
+  per-feature header (`# Feature Specification: ...`, `**Feature Branch**`, `**Created**`), which
+  a second feature must then overwrite or duplicate. Seeds are now titled as project-level
+  documents and the per-feature header block is dropped (#3).
+- **Source refs name the artifact the content actually came from.** The ref template hard-coded
+  `spec.md`, so a plan-derived entry would carry a ref asserting a provenance that is not true.
+  Refs now cite `plan.md`, `data-model.md`, or whichever artifact contributed the content.
+- Step 5.3 no longer depends on the agent-file template, which recent spec-kit versions removed
+  (spec-kit #2259 replaced it with a CLI-managed marker block). The section set is defined in the
+  command itself, and writing inside a tool-managed marker block is forbidden.
+
+### Added
+
+- Assumptions get `AS-###` IDs in the main spec, continuing above the highest existing ID, so
+  they can be cited, deduplicated, and superseded like requirements (#3).
+- A test fixture (`tests/fixture/`): a minimal two-feature project with thirteen deliberate
+  traps, pre-registered expectations, and a recorded v1.1.2 baseline of four executed runs. The
+  baseline found the `Why this priority` loss and proved the `bugs/` nondeterminism.
+
+### Changed
+
+- The changelog's Merged Features Log is now newest-first, entry headers say
+  `archived YYYY-MM-DD` (the date was always the archival date; now the label says so), and the
+  `**Spec:**` line is a relative link to the feature's spec file (#3).
+- The main `plan.md` structure is now stated: one consolidated document mirroring the plan
+  template's sections, never per-feature blocks — previously unstated, and one field run
+  produced per-feature headers (#3).
+
 ## [1.1.2] - 2026-08-09
 
 ### Fixed
