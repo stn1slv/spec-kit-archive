@@ -13,7 +13,7 @@ This extension acts as the "Outer Loop" of the Double-Loop Parity framework: it 
 - **Lifecycle Separation**: Operates purely on merging feature-level knowledge into project-level memory.
 - **Ecosystem Consistency**: Uses the core Spec-Kit `check-prerequisites.sh` script to locate the repository root (handles monorepos and nested structures). The feature to archive always comes from the path you pass, never from the script's own feature state, which points at whatever you worked on last rather than what you are archiving.
 - **Consolidation**: Folds each incoming feature item into the existing entry that covers the same ground, so the main spec stays a single consolidated specification instead of a per-feature digest. Existing entries are never merged into each other, so an established requirement ID cannot disappear behind your back.
-- **Traceability**: Adds item-level `[Source: specs/###-feature-name/spec.md -> FR-012]` refs and revision notes in the main memory artifacts. An entry consolidated from several features carries one ref per feature.
+- **Traceability**: Adds item-level `[Source: specs/###-feature-name/spec.md -> FR-012]` refs and revision notes in the main memory artifacts. A ref names the artifact the content actually came from (`spec.md`, `plan.md`, `data-model.md`), and an entry consolidated from several features carries one ref per feature.
 - **Supersession**: Detects requirements a later feature wholly replaces and asks you to confirm before deleting anything. Confirmed removals are deleted from the main spec and recorded in `changelog.md`, and their IDs are never reissued. Anything you do not confirm stays put and is recorded as an unresolved contradiction, so the next archival raises it again instead of losing it.
 - **Bounded inputs**: Declares the complete list of files it may take content from. Git history, deleted files, ad-hoc notes and agent memory stores are not sources, and a missing artifact is never reconstructed. This is what keeps runs reproducible and keeps the `[Source: ...]` refs honest.
 - **Reporting**: Mandates absolute paths in the final Archival Report, ensuring logs are always useful regardless of your CWD.
@@ -27,9 +27,9 @@ The command checks `.specify/extensions.yml` for `before_archive` and `after_arc
 You can install this extension via the Spec-Kit CLI:
 
 ```bash
-specify extension add archive --from https://github.com/stn1slv/spec-kit-archive/archive/refs/tags/v1.1.2.zip
+specify extension add archive --from https://github.com/stn1slv/spec-kit-archive/archive/refs/tags/v1.1.3.zip
 ```
-*(Note: Replace `v1.1.2` with the latest release version)*
+*(Note: Replace `v1.1.3` with the latest release version)*
 
 ## Usage
 
