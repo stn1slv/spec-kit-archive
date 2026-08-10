@@ -1,6 +1,6 @@
 # Fixture Test Cases and Expected Outcomes
 
-The fixture in `project/` is a minimal two-feature spec-kit project. Every trap below is deliberate. A test runner (a fresh agent given only `commands/archive.md` and the project) executes one case per run against a clean copy; results are compared to this file, which is written before any run.
+The fixture in `project/` is a minimal three-feature spec-kit project, with two prepared starting states beside it: `../legacy-state/` (pre-v1.1.3 memory formats) and `../archived-state/` (features 001-002 archived, the starting point for the 003 cases). Every trap below is deliberate. A test runner (a fresh agent given only `commands/archive.md` and the project) executes one case per run against a clean copy; results are compared to this file. **Pre-registration rule**: the expectations for a round must land in a commit *before* that round's runs, so the claim "written first" is auditable — round 2 landed in the same commit as its results, a weakness this rule exists to prevent from recurring.
 
 ## Traps built into the fixture
 
@@ -40,7 +40,7 @@ The fixture in `project/` is a minimal two-feature spec-kit project. Every trap 
 
 - FR renumbering (T8): 002's four FRs enter as FR-007..FR-010 or fold; local numbers never collide with FR-001..006.
 - T6: 002's single-owner FR folds into main FR-002, gaining a second source ref via the ladder; not appended as a near-duplicate.
-- T7: the retention contradiction is detected, presented for confirmation; on confirmation the old entry is removed, a `RETIRED:` line appears in the changelog with the replacement ID, and the report lists SC-003 as a dangling reference (it depends on keep-forever).
+- T7: the retention contradiction is detected, presented for confirmation; on confirmation the old entry is removed and a `RETIRED:` line appears in the changelog with the replacement ID. SC-003 (which measures the retired rule) may be surfaced as a second supersession candidate and retired with `no replacement` — the v1.1.2 baseline established this dependent-outcome retirement as the accepted behavior, superseding this file's original prediction of a dangling-reference listing.
 - T9: SSO assumption not duplicated. T10: Task entity extended in place. T12: changelog records 7/8 tasks.
 - T11 second half: what happens to the per-feature header block from A. Predicted failure: overwritten or duplicated.
 - T13: the constitution requires the retention change to be recorded; the RETIRED line satisfies it, and the report should connect the two (weak expectation; absence is a finding, not a failure).
@@ -61,12 +61,14 @@ New traps, in feature `003-reporting` and the `../legacy-state/` overlay:
 | T16 | `research.md` with one gotcha; `data-model.md` defining Report and extending Task | 003 | Known Issues merge in 5.3; entity refs citing `data-model.md` |
 | T17 | Legacy-state overlay: per-feature header, unnumbered assumptions, directory-level refs, per-feature-block plan, old-format chronological changelog | legacy-state/ | Every migration rule: no retroactive rewrite, AS backfill without ref cascade, touched-only legacy-ref upgrade, shared-sections creation, prepend-above-old-format |
 | T18 | Scope union and single modifiers | invocations | Union semantics; each single modifier writes exactly its artifact |
+| T19 | 003 stores `Report` rows with no stated retention rule, while its plan claims "No violations" | 003 spec.md + plan.md | Constitution Principle II interplay: 2.1 must flag it and Step 3 must ask (CRITICAL conflicts cannot be auto-resolved); accepting the plan's own claim without asking is a miss |
 
-### Case E — `specs/003-reporting`, full scope, on the C2 end state; runner **declines** all removals
+### Case E — `specs/003-reporting`, full scope, starting from the `../archived-state/` overlay; runner **declines** all removals
 
 - T14: the FR-002-vs-FR-008 contradiction is detected and presented; on decline, **nothing is removed**, both entries stay, the pair is recorded once under `## Unresolved Contradictions` (naming main-memory IDs), and 003's FR-002 is added as a new entry (never folded into the entry it contradicts).
-- T15: the Constraints conflict is raised as a Step 3 question; on the default, the field holds the current implemented state, the superseded value's ref is dropped with the value, and both are recorded in the revision note and report.
-- T16: the gotcha lands in the agent file's Known Issues in the standard format; the Report entity's ref cites `data-model.md`; Task's `completed_at` extension folds into the existing Task entry with a `data-model.md` ref.
+- T15: the Constraints conflict is raised as a Step 3 question. Under this case's decline-everything instruction the expected outcome is the **decline branch**: nothing dropped, both statements kept with the tension noted inline and in the report. The **default branch** (current implemented state kept, the superseded value's ref dropped with it, both recorded) is deliberately not exercised here and needs its own confirm-instructed case.
+- T19: the missing `Report` retention rule is flagged against Principle II and **asked** as a Step 3 question — the plan's own "No violations" claim is bait, not an answer. Recording the gap in the report after asking is a pass; silently accepting the plan's claim is a miss.
+- T16: the gotcha lands in the agent file's Known Issues in the standard format; the Report entity cites `data-model.md` — either alone or alongside a `spec.md` ref, since 003's spec also lists Report under Key Entities and the Edit Rules permit one ref per contributing artifact; Task's `completed_at` extension folds into the existing Task entry with a `data-model.md` ref.
 - FR renumbering continues above the highest live or retired ID (FR-009 exists, FR-004 retired), so 003's three FRs land at FR-010..FR-012 or fold.
 
 ### Case E2 — repeat Case E on its own end state, declining again
@@ -82,10 +84,10 @@ New traps, in feature `003-reporting` and the `../legacy-state/` overlay:
 
 ### Cases G1 / G2 — `--plan-only` and `--agent-only` singles, clean fixture each
 
-- G1: only `plan.md` created and populated; no `spec.md`, no `changelog.md`. Consolidated structure, refs cite `plan.md`.
-- G2: only the agent file updated; **no memory artifact is created at all**. The report says so per artifact.
+- G1: only `plan.md` created and populated; no `spec.md`, no `changelog.md`. Consolidated structure; every ref cites the feature's `plan.md` with its full `specs/###-.../plan.md` path. The Scoping section must name the suppressed `spec.md` bootstrap with the re-run advice.
+- G2: only the agent file updated; **no memory artifact is created at all**. The report says so per artifact. Note this case conflates scope with idempotency: the fixture's `AGENTS.md` already lists 001 under Recent Changes, so the expected agent-file outcome is an **in-place** completion (no duplicate Recent Changes bullet), not a fresh entry — running against 003 instead would isolate pure scope behavior.
 
 ### Case J — `specs/002-notifications`, full scope, clean fixture with the legacy-state overlay
 
-- T17, per the overlay README's table: the `## Feature 001:` header block survives untouched; unnumbered assumptions get `AS-001..003` backfilled in order plus `AS-004` for 002's new one, with **no** ref upgrades triggered by numbering alone; the owner-deactivation edge case (the one entry 002 folds into) has its directory-level ref upgraded, while the other legacy refs stay; 002's plan content creates shared sections next to the untouched `### 001 ...` blocks and the mixed layout is reported; the changelog gains the 002 entry at the top in the new format while the 001 entry keeps `— 2026-08-09` and its bare path.
+- T17, per the overlay README's table: the `## Feature 001:` header block survives untouched; unnumbered assumptions get `AS-001..003` backfilled in order plus `AS-004` for 002's new one, with **no** ref upgrades triggered by numbering alone. One registered exception: if the agent attaches 002's ref to the duplicate SSO assumption (the Edit Rules' one-ref-per-contributing-feature reading) that touch legitimately upgrades that one legacy ref — either outcome is compliant. The **FR-002 fold** (002's FR-003 folds into it, the guaranteed fold) upgrades FR-002's directory-level ref deterministically; the edge-case fold is agent-judgment and its ref may or may not upgrade accordingly; all other legacy refs stay. 002's plan content creates shared sections next to the untouched `### 001 ...` blocks, scalar Technical Context fields merge across the legacy layout, and the mixed layout is reported; the changelog gains the 002 entry at the top in the new format while the 001 entry keeps `— 2026-08-09` and its bare path.
 - The supersession machinery still works across formats: keep-forever vs 90-day retention is detected against the legacy-format spec (runner confirms in this case), FR-004 retired with a `RETIRED:` line.
