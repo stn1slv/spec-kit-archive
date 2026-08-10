@@ -26,9 +26,9 @@ The fixture in `project/` is a minimal two-feature spec-kit project. Every trap 
 - `spec.md` carries: 3 stories (Story 1 with 2 scenarios, Story 2 with 1), Story 3 archived without scenarios and named in Outstanding Items (T2); FR-001..006; 2 entities; 3 edge cases with quoted-phrase refs (T3); SC-001..003; 3 assumptions.
 - Report names the argument-vs-script divergence (T5): script said 002, argument won.
 - Changelog entry records 10/10 tasks.
-- **Open question the baseline answers (T4)**: what does v1.1.2 do with BUG-001? Predicted failure mode: content or annotations from it leak into FR entries without refs.
-- **Open question (T1)**: predicted failure: empty `## Clarifications` heading appears in memory with nothing in it.
-- **Open question (T11)**: predicted: a per-feature header block (`Feature Branch`, `Created`, `Status`) lands at the top of memory spec.md.
+- **T4, version-scoped.** Under v1.1.2 (no rule): predicted leak of BUG-001 content into FR entries — confirmed in `BASELINE-v1.1.2.md` (F1). From v1.1.3: `bugs/` is a named exclusion — BUG-001 is not read for content, FR-003 is archived unchanged, and the directory's presence is reported under Outstanding Items.
+- **T1, version-scoped.** Under v1.1.2 (undefined): predicted empty `## Clarifications` heading — behavior varied by agent (F2). From v1.1.3: the log is deliberately not archived, no heading is carried, and the exclusion is stated in the report.
+- **T11, version-scoped.** Under v1.1.2 (unspecified): predicted per-feature header block atop memory `spec.md` — agent-dependent (F4). From v1.1.3: seeds are titled `# Main Project Specification` / `# Main Implementation Plan` with the entire per-feature header block dropped.
 
 ## Case B — first archival, `--spec-only`: `specs/001-task-manager --spec-only`
 
