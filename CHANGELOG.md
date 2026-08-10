@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   workflow, reported in #3). Guidance steers attention, emphasis, and report detail; it cannot
   add sources, skip steps, change scope or IDs, or authorize removals, and it is echoed
   verbatim in the report under a new `## Guidance` section so runs stay auditable. Flags are
-  still validated strictly; ranges and globs are still rejected before guidance is classified.
+  still validated strictly; ranges, feature paths, and globs inside feature references are
+  still rejected before guidance is classified.
 - **Bounded `bugs/` support**, designed around spec-kit-bugfix's actual behavior: its patch
   step already writes amendments into the feature's own artifacts, so requirement text is
   still never taken from bug reports. What is new: a per-report status audit (ID, Type,

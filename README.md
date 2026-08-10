@@ -58,7 +58,7 @@ Free-form text after the feature path is **guidance**, like in the core spec-kit
 /speckit.archive.run specs/007-invoice Pay extra attention to the entity model.
 ```
 
-Guidance steers attention, emphasis, and report detail. It cannot add content sources, skip steps, change scope or IDs, or approve removals, and the report echoes it verbatim so every run stays auditable. Do not put feature paths, bare feature numbers, or globs into guidance — those are still rejected as a second feature.
+Guidance steers attention, emphasis, and report detail. It cannot add content sources, skip steps, change scope or IDs, or approve removals, and the report echoes it verbatim so every run stays auditable. Do not put feature paths (in any form) or leading bare feature numbers into guidance — those are rejected as a second feature. Ordinary prose, punctuation, and numbers inside sentences are fine.
 
 ## Workflow
 
