@@ -5,6 +5,41 @@ All notable changes to the Archive extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-08-10
+
+### Added
+
+- **Guidance text.** Free-form text after the feature path is accepted again, restoring the
+  channel every core spec-kit command offers (v1.1.1's strict rejection broke a working guided
+  workflow, reported in #3). Guidance steers attention, emphasis, and report detail; it cannot
+  add sources, skip steps, change scope or IDs, or authorize removals, and it is echoed
+  verbatim in the report under a new `## Guidance` section so runs stay auditable. Flags are
+  still validated strictly; ranges, feature paths, and globs inside feature references are
+  still rejected before guidance is classified.
+- **Bounded `bugs/` support**, designed around spec-kit-bugfix's actual behavior: its patch
+  step already writes amendments into the feature's own artifacts, so requirement text is
+  still never taken from bug reports. What is new: a per-report status audit (ID, Type,
+  Severity, Status — with Status explicitly treated as unreliable, per field experience),
+  a `Bugs addressed:` line in the changelog entry, Root Cause Analysis feeding the agent
+  file's Known Issues, awareness of whether a bugfix extension is installed, and extraction
+  rules for bugfix annotations inside feature artifacts: struck-through text is never
+  archived as live, `**Bugfix**:` lines are metadata not content, reopened tasks count as
+  incomplete (#3).
+- **Consolidation detection pass (Step 2.5)**, modelled on core `/speckit.analyze`:
+  imperative-phrase slugs key every incoming item, existing entries are indexed per section,
+  candidate pairs are shortlisted by slug overlap (capped at 20 with an overflow count), and
+  each pair gets one of three verdicts — fold, separate, or contradiction (routed to
+  supersession). The report now always states `incoming / examined / folded` counts, so
+  "zero duplicates" is legible as "examined and found distinct" rather than "did not look"
+  (#3, the original report's core complaint).
+
+### Changed
+
+- 5.1 folding of the spec-side categories is gated on the 2.5 verdict table instead of ad-hoc
+  judgment while writing — two baseline runs folded the same pair differently; the table
+  records that judgment where it can be audited and previewed before any edit.
+- The unrecognized-argument rejection narrowed to `--flags`; bare text is guidance.
+
 ## [1.1.3] - 2026-08-10
 
 ### Fixed
