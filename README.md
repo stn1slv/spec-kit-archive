@@ -31,6 +31,12 @@ specify extension add archive --from https://github.com/stn1slv/spec-kit-archive
 ```
 *(Note: Replace `v1.1.3` with the latest release version)*
 
+To upgrade an existing installation, add `--force` — without it the CLI refuses to overwrite the installed version:
+
+```bash
+specify extension add archive --from https://github.com/stn1slv/spec-kit-archive/archive/refs/tags/v1.1.3.zip --force
+```
+
 ## Usage
 
 ```bash
