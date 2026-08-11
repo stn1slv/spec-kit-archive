@@ -136,3 +136,35 @@ New traps, in feature `004-attachments` and `project/.specify/extensions.yml`:
 
 - T17, per the overlay README's table: the `## Feature 001:` header block survives untouched; unnumbered assumptions get `AS-001..003` backfilled in order plus `AS-004` for 002's new one, with **no** ref upgrades triggered by numbering alone. One registered exception: if the agent attaches 002's ref to the duplicate SSO assumption (the Edit Rules' one-ref-per-contributing-feature reading) that touch legitimately upgrades that one legacy ref — either outcome is compliant. The **FR-002 fold** (002's FR-003 folds into it, the guaranteed fold) upgrades FR-002's directory-level ref deterministically; the edge-case fold is agent-judgment and its ref may or may not upgrade accordingly; all other legacy refs stay. 002's plan content creates shared sections next to the untouched `### 001 ...` blocks, scalar Technical Context fields merge across the legacy layout, and the mixed layout is reported; the changelog gains the 002 entry at the top in the new format while the 001 entry keeps `— 2026-08-09` and its bare path.
 - The supersession machinery still works across formats: keep-forever vs 90-day retention is detected against the legacy-format spec (runner confirms in this case), FR-004 retired with a `RETIRED:` line.
+
+## Round 5 cases (v1.2.2 verification; this section committed before any round-5 run)
+
+New feature `005-shared-ownership`, added to close the one path v1.2.1 shipped unexecuted: **withholding an item over an unresolved constitution conflict**. Every constitution finding in the fixture until now was an obligation or an action rule, so branch 1 of 2.1 and everything downstream of it had never run.
+
+| # | Trap | Location | What it tests |
+|---|---|---|---|
+| T26 | 005 FR-001 ("up to three co-owners … with no single owner among them") contradicts Principle I ("Every task MUST have exactly one owner. Shared or unassigned active tasks are not allowed") outright | 005 spec.md + constitution.md | 2.1 **branch 1**: a genuine conflict, not an obligation. Must be flagged CRITICAL and asked as its own question, separate from any obligation question |
+| T27 | 005's plan Constitution Check claims "No violations. Co-ownership extends the ownership model rather than removing it, since every co-owner is still an owner" | 005 plan.md | The same bait as T19, on the conflict branch: quoting it is correct, closing the flag with it is a miss |
+| T28 | The conflicting FR-001 is also the **replacement** for a supersession candidate (it wholly replaces main FR-002, "assign a task to exactly one owner") | 005 spec.md vs archived-state spec.md | The pairing rule: the supersession question must **warn** that this removal's replacement is a contested item, so the user is not confirming a removal whose replacement they are about to withhold |
+| T29 | 005 also carries content with no constitution problem at all (2 stories, FR-002, FR-003, `Delegation` entity, an edge case, SC-001, an assumption) | 005 spec.md | "Withholds that item **and only that item**": everything else archives normally |
+| T30 | `Task` gains `co_owner_ids` in `data-model.md` | 005 data-model.md | An entity extension that carries the conflicting concept, where the conflict is on the requirement rather than the entity |
+
+### Case N — `specs/005-shared-ownership`, full scope, on the `../archived-state/` overlay; runner **confirms** removals and **leaves the constitution conflict unresolved**
+
+This is the combination that produces `replacement withheld`. Both answers are deliberate: confirming the removal is the ordinary answer, and leaving the conflict unresolved is the only legal answer that exercises withholding (an accepted gap is valid for an obligation and forbidden for a conflict).
+
+- **T26**: FR-001 is flagged as a `🔴 CONSTITUTION CONFLICT` against Principle I, not as an obligation and not as an action-requiring rule. It is asked as a **separate question** from any obligation finding, because the two take different answer sets.
+- **T27**: the plan's "No violations" claim is quoted in the question, and does not close the flag.
+- **T28**: the supersession question names the pairing — that FR-002's proposed replacement (FR-001) is itself a conflict candidate. Asking the supersession question without that warning is a miss even if every other outcome is right.
+- **Withholding, the point of the case**: FR-001 is **not** archived. Main memory does not gain a co-ownership requirement. FR-002 is removed (the user confirmed it), so main memory ends the run with neither — which is exactly why T28's warning has to exist.
+- **`replacement withheld`**: FR-002's `RETIRED:` line closes as `→ replacement withheld (unresolved constitution conflict)`. Not `<pending>`, and not a false `→ no replacement`. The pair is named under `## Outstanding Items`.
+- **T29**: both stories, FR-002 and FR-003 (renumbered above the highest live and retired ID), the `Delegation` entity, the edge case, SC-001 and the assumption all archive normally. A run that withholds more than FR-001 is a miss.
+- **T30**: the `Task` entity extension is agent judgment. Folding `co_owner_ids` in is acceptable (the conflict was flagged on the requirement, not the entity); withholding it as part of the same conflict is also acceptable **if the report says so explicitly**. Silence about it either way is a miss.
+- **Report**: `## Constitution Compliance` lists the conflict with its disposition as unresolved; `## Outstanding Items` names the withheld item, the rule it conflicts with, and the recommendation to resolve and re-archive. The Quality Gate stays action-requiring and unverified (005's plan claims API tests for both routes), never flagged.
+- The run **completes**. Nothing aborts.
+
+### Case N2 — repeat Case N on its own end state, same answers
+
+- The conflict is re-detected and re-asked: nothing records the previous answer, exactly as for an accepted gap.
+- FR-001 is withheld again; no second `RETIRED:` line is written for FR-002, which is already retired and whose audit line is append-only.
+- Everything else is a per-artifact idempotent no-op; file state otherwise byte-for-byte unchanged.
