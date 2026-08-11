@@ -51,6 +51,30 @@ surfaced any of them.
   an existing entry still requires its own supersession confirmation — no conflict answer stands in
   for it.
 
+- **A plan's Constitution Check can be the record a rule asks for, and 2.1 now says which is which.**
+  "Input, not a verdict" was written to stop a compliance claim closing a flag, but it also read as
+  barring the section from containing content a rule genuinely requires. A fixture runner hit this on
+  Principle II's "changing a retention rule MUST be recorded" clause, flagged its own uncertainty, and
+  stated that the two readings archive or withhold the same requirement. The test is now what the
+  sentence does: "we checked and it is fine" is a verdict and closes nothing; "here is what we changed
+  and why" is the record the rule demanded.
+- **2.4's "whole entries only" test has a decision procedure.** Two runners reached opposite verdicts
+  on the same pair. Ask whether any case the existing entry governs is still governed correctly: if
+  so it is partial. An entry of several independent prose clauses is partial when only some are
+  contradicted; an explicit statement that the feature replaces, deprecates or removes prior behavior
+  makes it whole. When still unsure, treat it as partial, because reporting a contradiction is
+  recoverable and removing a rule that still held is not. Two things the procedure does not govern:
+  an entity's fields are not independent clauses, so an incompatible redefinition still reaches the
+  supersession flow; and a re-raised pair has no incoming item, so the tie-break must not swallow it.
+- **A partial contradiction is reported under Outstanding Items**, naming both entries and stating
+  that nothing will re-raise it, since a partial verdict never becomes a candidate.
+- **Revision notes have a fixed place, form and scope.** They go in `spec.md` and `plan.md` only, as
+  blockquotes under the document title, newest last, never rewritten, and a run may write several
+  lines when it has several things to record. The changelog entry and the agent file's Recent Changes
+  bullet already name every run, so a second record there says nothing. Placement is fixed because
+  later runs read these notes: 5.2's settled-conflict exception depends on finding one an earlier run
+  wrote. Notes an older version placed elsewhere are left where they are and the split is reported.
+
 ### Testing
 
 Feature `005-shared-ownership` was added to the fixture to close the one path v1.2.1 shipped
