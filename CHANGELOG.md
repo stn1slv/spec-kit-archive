@@ -5,6 +5,79 @@ All notable changes to the Archive extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-08-11
+
+### Fixed
+
+- **Constitution obligations left unmet are now flagged.** Step 2.1 only ever tested for
+  *conflicts*, so a MUST principle that requires a statement from any feature meeting a
+  condition ("every feature that stores user data MUST state its retention rule") could be
+  violated by omission without anything to flag: nothing in the feature contradicted the text,
+  the required content was simply absent. 2.1 now checks both kinds and has a second CRITICAL
+  block for the obligation form. The check is bounded — an obligation is examined only when the
+  feature actually does the thing the rule conditions on; it is met by a statement in the feature's
+  own artifacts, anywhere among the ones Step 1 reads unless the rule names a location, and it
+  **never withholds content**, since nothing in the feature contradicts
+  anything and the triggering content is the feature's ordinary work. The statement need only be
+  this feature's own — whether one statement covers every kind of data the feature stores is a
+  judgment for the user, not a flag from this step. Main memory never satisfies
+  an obligation: rules of this kind bind each feature, so an earlier feature's compliance is not
+  this one's. Both branches now cover Core Principles, Architecture Standards, and Quality Gates
+  alike. Step 3 states the resolution options explicitly (amend the feature spec and re-run, accept
+  the gap, or declare the obligation not triggered), notes that the run archives either way since
+  there is no abort path from an answer, and forbids this command from writing the missing
+  statement into **any** artifact — memory or feature spec — because text placed in the feature
+  spec would be read back as a source on the next run, producing a ref that looks honest and is not.
+  The "materially changes scope or correctness" filter is also scoped explicitly to discretionary
+  questions, so an Always-ask category can no longer be dropped on the grounds that no answer would
+  change what gets written. Conflicts and obligations are asked as separate questions, since an
+  obligation may be closed as an accepted gap and a conflict may not.
+- **What an unresolved constitution conflict does is now stated.** The command said in three places
+  that a conflict must be resolved "before archival can proceed" and nowhere said what happens when
+  the user does not resolve one, leaving an agent free to halt the run or to continue. It now says
+  once: the conflicting item alone is withheld, everything else in the feature archives normally,
+  the run completes, and the withheld item is named in the report with a re-archive recommendation.
+  Nothing in Steps 3 to 7 aborts a run. Withholding is named as the one exception to the file's
+  completeness absolutes, and its three consequences are stated: the item's 2.5 fold does not
+  happen, a `RETIRED:` line whose replacement was withheld closes as `replacement withheld`, and
+  the conflict question's legal options exclude "archive it anyway", which no answer can authorize.
+- **Constitution rules requiring an action are no longer flagged.** A rule like "All API routes MUST
+  have automated tests before merge" requires something to be *done*, not stated, and this command
+  reads artifacts — it cannot inspect a codebase or a CI run. Treating silence in a plan as an
+  unmet obligation would have raised a mandatory question on almost every feature. Such rules are
+  now a third shape alongside conflicts and obligations, reported under Outstanding Items as
+  **unverified** and never flagged. A claim is not a verification — the principle this command
+  already applies to a bug report's `Status` field — so a plan claiming "API tests for both routes",
+  a plan saying nothing, and a Testing Strategy whose list omits one route are all equally
+  unverified. Only a feature statement admitting the action was skipped is a conflict, and it is an
+  ordinary one, judged against the statement rather than the rule.
+- **A feature's own Constitution Check no longer settles the question.** A `plan.md` verdict of
+  "No violations" records what the author believed at planning time, before the work was done.
+  It is quoted in the Step 3 question when relevant, but it can no longer close a 2.1 flag on
+  its own, and neither can the command's own judgment that a violation looks minor: that call
+  belongs to the user in Step 3.
+- **Shared plan scalars seeded beside legacy blocks were understated.** When 5.2 created a
+  shared Technical Context in a `plan.md` still holding pre-v1.1.3 per-feature blocks, scalar
+  fields (Constraints, Scale/Scope, and the like) were seeded with only the current run's value
+  while earlier features' values stayed quarantined in the legacy blocks. A scalar has one slot,
+  so the shared field read as *the* current implemented state while describing part of it, and
+  every later run folded into the understated field. Seeding now composes the legacy values
+  together with this run's, one source ref per contributing feature, with the legacy contributor's
+  ref taken through the existing Legacy refs ladder. The rule is a condition rather than a one-time
+  event, so a shared field an earlier version already created is still completed — with one
+  exception, so that a legacy value the revision note records as the losing side of a resolved
+  conflict is not re-composed on every later run, quietly undoing the user's decision. Step 2.2
+  gained a detection pass for Technical Context scalar conflicts, because 5.2 asks for a Step 3
+  question about them and Step 3 runs once, before the writing step that used to find them. Bounded
+  to the
+  labelled `**Field**: value` lines of a legacy block's Technical Context, judged by structure
+  rather than by the shape of the value: a section of enumerated entries stays put, because the
+  reader unions a shared section with a legacy one and loses nothing, while a labelled field
+  appears once and so reads as the whole value for that label. Legacy blocks are still
+  never modified in either branch — when values conflict, the losing value is simply not carried
+  into the shared field — and the report says for each legacy line whether it is now a duplicate or
+  a superseded statement, with a recommendation to prune by hand.
+
 ## [1.2.0] - 2026-08-10
 
 ### Added

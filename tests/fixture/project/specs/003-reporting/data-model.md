@@ -14,6 +14,7 @@ A generated weekly summary for one team.
 | created_count | int | tasks created in the period |
 | completed_count | int | tasks completed in the period |
 | overdue_count | int | overdue tasks at generation time |
+| owner_breakdown | jsonb | per-owner completed counts, keyed by user id, with the owner's display name |
 | generated_at | timestamp | when the report job ran |
 
 ### Task (extension)
