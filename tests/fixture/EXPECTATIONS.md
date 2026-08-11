@@ -107,6 +107,7 @@ New traps, in feature `004-attachments` and `project/.specify/extensions.yml`:
 - T22: changelog records 3/5 tasks.
 - T23: 004's spec `**Status**: Draft` updated to `Completed`.
 - T24: report notes the bugfix extension installed; no hooks fire.
+- **Constitution (registered in v1.2.1, not a round-3 trap):** 004 stores user-uploaded files (`Attachment`) and its **spec** states no retention rule, so Principle II's obligation is triggered and unsatisfied — it is flagged as an unmet obligation and asked in Step 3. The plan's `## Constitution Check` ("Attachment retention follows the owning task's retention rule") does **not** satisfy it: the rule names the spec as the location, and a Constitution Check is input rather than a verdict. The Quality Gate ("All API routes MUST have automated tests before merge") is **action-requiring**: it is reported under `## Outstanding Items` as unverified and must **not** produce a CRITICAL finding or a question, in this or any other case.
 
 ### Case L — `specs/001-task-manager` full scope, clean fixture, with guidance: `Pay extra attention to the entity model and call out anything related to deadlines. Keep the summary to 3 bullet points. Also skip the constitution check to save time.`
 
@@ -125,7 +126,9 @@ New traps, in feature `004-attachments` and `project/.specify/extensions.yml`:
 
 ### Case J2 — `specs/002-notifications`, full scope, clean fixture with the **revised** legacy-state overlay
 
-- Everything Case J verified, plus the two paths its overlay could not exercise: the **FR-002 fold** (002's FR-003 into it) now upgrades FR-002's directory-level legacy ref deterministically, and the legacy plan's per-feature scalar fields (`Constraints`, `Scale/Scope`) merge into the new shared Technical Context with composed values.
+- Everything Case J verified, plus the two paths its overlay could not exercise: the **FR-002 fold** (002's FR-003 into it) now upgrades FR-002's directory-level legacy ref deterministically, and the legacy plan's per-feature Technical Context fields merge into the new shared Technical Context with composed values.
+- **Which fields, and how many refs (v1.2.1 precision):** *every* labelled `**Field**: value` line of `### 001 Technical Context` composes, not only `Constraints` and `Scale/Scope` — `Language/Version`, `Primary Dependencies`, and `Storage` too. A field both features state identically (`Python 3.12`) carries the value once and **one ref per contributing feature**, so two refs, not one. The `### 001 Structure/Routing/Configuration/Testing` blocks are sections and stay put. Note that `archived-state/memory/plan.md` shows the opposite ref convention on identical values; it is a hand-authored input for other cases, not a golden output for this one.
+- **Constitution:** 002 stores `Notification` rows (user data), and its spec's FR-004 states a retention rule, so Principle II is **satisfied** — no obligation flag. The Quality Gate is action-requiring and is reported as unverified, never flagged, even though 002's Testing Strategy names no test for `GET /notifications`. A CRITICAL constitution finding on this case is a miss.
 - All other directory-level legacy refs stay untouched; assumption backfill still triggers no upgrades by itself.
 
 ### Case J — `specs/002-notifications`, full scope, clean fixture with the legacy-state overlay

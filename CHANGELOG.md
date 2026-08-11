@@ -16,9 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the required content was simply absent. 2.1 now checks both kinds and has a second CRITICAL
   block for the obligation form. The check is bounded — an obligation is examined only when the
   feature actually does the thing the rule conditions on; it is met by a statement in the feature's
-  own artifacts, anywhere among them unless the rule names a location, and about the behavior that
-  triggered it; and it **never withholds content**, since nothing in the feature contradicts
-  anything and the triggering content is the feature's ordinary work. Main memory never satisfies
+  own artifacts, anywhere among the ones Step 1 reads unless the rule names a location, and it
+  **never withholds content**, since nothing in the feature contradicts
+  anything and the triggering content is the feature's ordinary work. The statement need only be
+  this feature's own — whether one statement covers every kind of data the feature stores is a
+  judgment for the user, not a flag from this step. Main memory never satisfies
   an obligation: rules of this kind bind each feature, so an earlier feature's compliance is not
   this one's. Both branches now cover Core Principles, Architecture Standards, and Quality Gates
   alike. Step 3 states the resolution options explicitly (amend the feature spec and re-run, accept
@@ -35,7 +37,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the user does not resolve one, leaving an agent free to halt the run or to continue. It now says
   once: the conflicting item alone is withheld, everything else in the feature archives normally,
   the run completes, and the withheld item is named in the report with a re-archive recommendation.
-  Nothing in Steps 3 to 7 aborts a run.
+  Nothing in Steps 3 to 7 aborts a run. Withholding is named as the one exception to the file's
+  completeness absolutes, and its three consequences are stated: the item's 2.5 fold does not
+  happen, a `RETIRED:` line whose replacement was withheld closes as `replacement withheld`, and
+  the conflict question's legal options exclude "archive it anyway", which no answer can authorize.
+- **Constitution rules requiring an action are no longer flagged.** A rule like "All API routes MUST
+  have automated tests before merge" requires something to be *done*, not stated, and this command
+  reads artifacts — it cannot inspect a codebase or a CI run. Treating silence in a plan as an
+  unmet obligation would have raised a mandatory question on almost every feature. Such rules are
+  now reported under Outstanding Items as **unverified**, and only an artifact plainly stating the
+  action was skipped is a conflict.
 - **A feature's own Constitution Check no longer settles the question.** A `plan.md` verdict of
   "No violations" records what the author believed at planning time, before the work was done.
   It is quoted in the Step 3 question when relevant, but it can no longer close a 2.1 flag on
