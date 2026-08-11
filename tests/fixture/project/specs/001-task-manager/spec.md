@@ -10,7 +10,7 @@
 ### Session 2026-07-02
 
 - Q: Can a task have more than one owner? → A: No, exactly one owner per task.
-- Q: What happens to tasks when their owner is deactivated? → A: They move to the team backlog with no owner.
+- Q: What happens to tasks when their owner is deactivated? → A: They are reassigned to the team lead, who becomes their owner.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -49,7 +49,7 @@ A user filters the task list to see only tasks due this week.
 
 ### Edge Cases
 
-- What happens when a task's owner account is deactivated? The task moves to the team backlog with no owner.
+- What happens when a task's owner account is deactivated? The task is reassigned to the team lead, who becomes its owner.
 - Deadline set in the past: the task is created but immediately flagged as overdue.
 - Two users edit the same task at the same time: last write wins, and the earlier editor sees a notice that the task changed.
 
@@ -62,7 +62,7 @@ A user filters the task list to see only tasks due this week.
 - **FR-003**: System MUST show a paginated task list of 25 tasks per page, ordered by deadline.
 - **FR-004**: Completed tasks MUST be kept forever and MUST never be deleted from the system.
 - **FR-005**: System MUST flag a task as overdue when its deadline has passed and it is not completed.
-- **FR-006**: When an owner account is deactivated, the system MUST move that owner's tasks to the team backlog.
+- **FR-006**: When an owner account is deactivated, the system MUST reassign that owner's tasks to the team lead, who becomes their owner.
 
 ### Key Entities
 

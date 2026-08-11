@@ -36,7 +36,7 @@ A team lead looks at the task list and sees which tasks are currently delegated 
 - **FR-001**: A task MUST support up to three co-owners who share responsibility for it equally, with no single owner among them.
 - **FR-002**: The system MUST record who delegated a task, to whom, and when.
 - **FR-003**: A delegation MUST expire automatically after at most 14 days.
-- **FR-004**: When an owner account is deactivated, the system MUST transfer that owner's tasks to their remaining co-owners, and MUST NOT move them to the team backlog.
+- **FR-004**: When an owner account is deactivated, the system MUST transfer that owner's tasks to their remaining co-owners. **This replaces the team-lead reassignment rule entirely**: a deactivated owner's tasks are never reassigned to the team lead, in any case.
 
 ### Key Entities
 

@@ -23,7 +23,7 @@ A task owner attaches a file to a task, and every team member can open it from t
 ### Edge Cases
 
 - ~~Attachments over 100 MB are rejected silently.~~
-- An attachment on a task that moves to the team backlog stays attached and readable.
+- An attachment on a task reassigned to a new owner stays attached and readable.
 
 ## Requirements *(mandatory)*
 
