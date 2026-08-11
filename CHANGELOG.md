@@ -42,10 +42,14 @@ surfaced any of them.
 - **The 2.5 counts describe pairs 2.5 shortlisted, and nothing else.** A supersession candidate
    2.4 found by its own criteria is reported under Superseded Requirements and does not enter the
   examined tally, so its absence there is not a gap.
-- **A 2.1 conflict and a 2.5 contradiction covering the same content are decided once.** Two
-  fixture runners reached opposite conclusions here, which is what identified it. The constitution
-  question governs, and the pair is still written to `## Unresolved Contradictions` whatever the
-  answer, because a withheld item leaves no trace in the spec and nothing else would re-raise it.
+- **A same-named entity whose definition is withheld by a constitution conflict now gets the same
+  closure as a declined supersession.** Two fixture runners reached opposite conclusions here, which
+  is what identified it: 5.1's entity exception already prescribed keeping the existing entry and
+  recording the pair, but named only two triggers, so whether it applied to a conflict was a guess.
+  A withheld definition leaves no trace in `spec.md`, so without the record nothing raises it again.
+  Content whose conflict the user **clears** is unaffected and archives normally, and the removal of
+  an existing entry still requires its own supersession confirmation — no conflict answer stands in
+  for it.
 
 ### Testing
 

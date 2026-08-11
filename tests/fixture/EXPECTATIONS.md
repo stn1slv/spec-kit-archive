@@ -167,5 +167,5 @@ This is the combination that produces `replacement withheld`. Both answers are d
 ### Case N2 — repeat Case N on its own end state, same answers
 
 - The conflict is re-detected and re-asked: nothing records the previous answer, exactly as for an accepted gap.
-- FR-001 is withheld again; no second `RETIRED:` line is written for FR-002, which is already retired and whose audit line is append-only.
+- FR-001 is withheld again; no second `RETIRED:` line is written for FR-006, which is already retired and whose audit line is append-only.
 - Everything else is a per-artifact idempotent no-op; file state otherwise byte-for-byte unchanged.
