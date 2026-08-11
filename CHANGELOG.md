@@ -5,6 +5,56 @@ All notable changes to the Archive extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-08-11
+
+### Fixed
+
+Seven ambiguities, every one of them found by an agent executing the command against the
+test fixture rather than by reading it. Five review rounds across three models had not
+surfaced any of them.
+
+- **Story insertion order no longer contradicts the never-renumber rule.** "Add, maintaining
+  priority ordering" could not be satisfied alongside "never renumber existing IDs", because a
+  new P1 story cannot sit beside the existing P1 without renumbering what follows. Story
+  numbers are IDs: they are cited in refs and retired on supersession. New stories are appended,
+  ordered among themselves, and priority is read from the heading rather than from position.
+- **Superseding one item of a multi-item scalar no longer drops refs that still vouch for
+  something.** A field like `Constraints: single region, no offline mode` carries one ref per
+  feature, so dropping the ref with the superseded item stripped attribution from clauses that
+  are still true. Dropping is now per item, and a feature's ref goes only when none of its
+  contributions to that field survive.
+- **What a template seed keeps and what it strips is stated.** Instructional comments, section
+  annotations, example entries, and sections about authoring one feature's own files are
+  removed; every other heading stays, empty, because an empty heading tells the next run where
+  content belongs and a deleted one loses that silently.
+- **The source-ref ladder covers plan content.** It was written around spec items, leaving
+  unnumbered plan fields to inference. A labelled Technical Context field cites its own label; a
+  routing or configuration bullet cites its opening phrase.
+- **A feature's own `## Constitution Check` is never archived.** It is a planning-time
+  self-assessment, which is why 2.1 treats it as input rather than a verdict. Archiving it put a
+  claim into main memory that went stale as soon as the thing it described changed: one fixture
+  run left the plan asserting "completed tasks kept forever" after that rule had been retired.
+- **A supersession can leave prose behind that no ID scan finds.** Retiring `FR-004` does not
+  remove a sentence describing what it required. After a removal, the command now names any
+  passage that plainly restates the retired behavior, in the same four files it already scans.
+  Report only, never a rewrite, because deciding a passage is about the retired behavior is
+  judgment that can be wrong.
+- **The 2.5 counts describe pairs 2.5 shortlisted, and nothing else.** A supersession candidate
+   2.4 found by its own criteria is reported under Superseded Requirements and does not enter the
+  examined tally, so its absence there is not a gap.
+- **A 2.1 conflict and a 2.5 contradiction covering the same content are decided once.** Two
+  fixture runners reached opposite conclusions here, which is what identified it. The constitution
+  question governs, and the pair is still written to `## Unresolved Contradictions` whatever the
+  answer, because a withheld item leaves no trace in the spec and nothing else would re-raise it.
+
+### Testing
+
+Feature `005-shared-ownership` was added to the fixture to close the one path v1.2.1 shipped
+unexecuted: withholding an item over an unresolved constitution conflict, and the
+`replacement withheld` closure. Its FR-001 contradicts Principle I outright, and its FR-004
+both replaces a single-clause main entry and conflicts, which is what makes the pairing warning
+observable.
+
 ## [1.2.1] - 2026-08-11
 
 ### Fixed
