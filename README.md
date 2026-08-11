@@ -28,14 +28,14 @@ The command checks `.specify/extensions.yml` for `before_archive` and `after_arc
 You can install this extension via the Spec-Kit CLI:
 
 ```bash
-specify extension add archive --from https://github.com/stn1slv/spec-kit-archive/archive/refs/tags/v1.2.0.zip
+specify extension add archive --from https://github.com/stn1slv/spec-kit-archive/archive/refs/tags/v1.2.1.zip
 ```
-*(Note: Replace `v1.2.0` with the latest release version)*
+*(Note: Replace `v1.2.1` with the latest release version)*
 
 To upgrade an existing installation, add `--force` — without it the CLI refuses to overwrite the installed version:
 
 ```bash
-specify extension add archive --from https://github.com/stn1slv/spec-kit-archive/archive/refs/tags/v1.2.0.zip --force
+specify extension add archive --from https://github.com/stn1slv/spec-kit-archive/archive/refs/tags/v1.2.1.zip --force
 ```
 
 ## Usage

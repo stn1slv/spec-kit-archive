@@ -5,6 +5,44 @@ All notable changes to the Archive extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-08-11
+
+### Fixed
+
+- **Constitution obligations left unmet are now flagged.** Step 2.1 only ever tested for
+  *conflicts*, so a MUST principle that requires a statement from any feature meeting a
+  condition ("every feature that stores user data MUST state its retention rule") could be
+  violated by omission without anything to flag: nothing in the feature contradicted the text,
+  the required content was simply absent. 2.1 now checks both kinds and has a second CRITICAL
+  block for the obligation form. The check is bounded — an obligation is examined only when the
+  feature actually does the thing the rule conditions on; it is met by a statement anywhere in the
+  feature's artifacts unless the rule names a location, and by one already in the archived main
+  spec; and it **never withholds content**, since nothing in the feature contradicts anything and
+  the triggering content is the feature's ordinary work. Both branches now cover Core Principles,
+  Architecture Standards, and Quality Gates alike. Step 3 states the resolution options explicitly
+  (amend the feature spec and re-run, accept the gap, or declare the obligation not triggered) and
+  forbids writing the missing statement into memory from the user's answer, which would produce an
+  entry no Allowed Source backs.
+- **A feature's own Constitution Check no longer settles the question.** A `plan.md` verdict of
+  "No violations" records what the author believed at planning time, before the work was done.
+  It is quoted in the Step 3 question when relevant, but it can no longer close a 2.1 flag on
+  its own, and neither can the command's own judgment that a violation looks minor: that call
+  belongs to the user in Step 3.
+- **Shared plan scalars seeded beside legacy blocks were understated.** When 5.2 created a
+  shared Technical Context in a `plan.md` still holding pre-v1.1.3 per-feature blocks, scalar
+  fields (Constraints, Scale/Scope, and the like) were seeded with only the current run's value
+  while earlier features' values stayed quarantined in the legacy blocks. A scalar has one slot,
+  so the shared field read as *the* current implemented state while describing part of it, and
+  every later run folded into the understated field. Seeding now composes the legacy values
+  together with this run's, one source ref per contributing feature, with the legacy contributor's
+  ref taken through the existing Legacy refs ladder. The rule is a condition rather than a one-time
+  event, so a shared field an earlier version already created is still completed. Bounded to scalar
+  fields, judged by the shape of the value rather than by where the field sits (a list stays put:
+  the reader unions a shared list with a legacy list and loses nothing). Legacy blocks are still
+  never modified in either branch — when values conflict, the losing value is simply not carried
+  into the shared field — and the report says for each legacy line whether it is now a duplicate or
+  a superseded statement, with a recommendation to prune by hand.
+
 ## [1.2.0] - 2026-08-10
 
 ### Added
