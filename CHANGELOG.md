@@ -15,14 +15,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   violated by omission without anything to flag: nothing in the feature contradicted the text,
   the required content was simply absent. 2.1 now checks both kinds and has a second CRITICAL
   block for the obligation form. The check is bounded — an obligation is examined only when the
-  feature actually does the thing the rule conditions on; it is met by a statement anywhere in the
-  feature's artifacts unless the rule names a location, and by one already in the archived main
-  spec; and it **never withholds content**, since nothing in the feature contradicts anything and
-  the triggering content is the feature's ordinary work. Both branches now cover Core Principles,
-  Architecture Standards, and Quality Gates alike. Step 3 states the resolution options explicitly
-  (amend the feature spec and re-run, accept the gap, or declare the obligation not triggered) and
-  forbids writing the missing statement into memory from the user's answer, which would produce an
-  entry no Allowed Source backs.
+  feature actually does the thing the rule conditions on; it is met by a statement in the feature's
+  own artifacts, anywhere among them unless the rule names a location, and about the behavior that
+  triggered it; and it **never withholds content**, since nothing in the feature contradicts
+  anything and the triggering content is the feature's ordinary work. Main memory never satisfies
+  an obligation: rules of this kind bind each feature, so an earlier feature's compliance is not
+  this one's. Both branches now cover Core Principles, Architecture Standards, and Quality Gates
+  alike. Step 3 states the resolution options explicitly (amend the feature spec and re-run, accept
+  the gap, or declare the obligation not triggered), notes that the run archives either way since
+  there is no abort path from an answer, and forbids this command from writing the missing
+  statement into **any** artifact — memory or feature spec — because text placed in the feature
+  spec would be read back as a source on the next run, producing a ref that looks honest and is not.
+  The "materially changes scope or correctness" filter is also scoped explicitly to discretionary
+  questions, so an Always-ask category can no longer be dropped on the grounds that no answer would
+  change what gets written.
 - **A feature's own Constitution Check no longer settles the question.** A `plan.md` verdict of
   "No violations" records what the author believed at planning time, before the work was done.
   It is quoted in the Step 3 question when relevant, but it can no longer close a 2.1 flag on
@@ -36,9 +42,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   every later run folded into the understated field. Seeding now composes the legacy values
   together with this run's, one source ref per contributing feature, with the legacy contributor's
   ref taken through the existing Legacy refs ladder. The rule is a condition rather than a one-time
-  event, so a shared field an earlier version already created is still completed. Bounded to scalar
-  fields, judged by the shape of the value rather than by where the field sits (a list stays put:
-  the reader unions a shared list with a legacy list and loses nothing). Legacy blocks are still
+  event, so a shared field an earlier version already created is still completed. Bounded to the
+  labelled `**Field**: value` lines of a legacy block's Technical Context, judged by structure
+  rather than by the shape of the value: a section of enumerated entries stays put, because the
+  reader unions a shared section with a legacy one and loses nothing, while a labelled field
+  appears once and so reads as the whole value for that label. Legacy blocks are still
   never modified in either branch — when values conflict, the losing value is simply not carried
   into the shared field — and the report says for each legacy line whether it is now a duplicate or
   a superseded statement, with a recommendation to prune by hand.
