@@ -45,8 +45,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   have automated tests before merge" requires something to be *done*, not stated, and this command
   reads artifacts — it cannot inspect a codebase or a CI run. Treating silence in a plan as an
   unmet obligation would have raised a mandatory question on almost every feature. Such rules are
-  now reported under Outstanding Items as **unverified**, and only an artifact plainly stating the
-  action was skipped is a conflict.
+  now a third shape alongside conflicts and obligations, reported under Outstanding Items as
+  **unverified** and never flagged. A claim is not a verification — the principle this command
+  already applies to a bug report's `Status` field — so a plan claiming "API tests for both routes",
+  a plan saying nothing, and a Testing Strategy whose list omits one route are all equally
+  unverified. Only a feature statement admitting the action was skipped is a conflict, and it is an
+  ordinary one, judged against the statement rather than the rule.
 - **A feature's own Constitution Check no longer settles the question.** A `plan.md` verdict of
   "No violations" records what the author believed at planning time, before the work was done.
   It is quoted in the Step 3 question when relevant, but it can no longer close a 2.1 flag on
