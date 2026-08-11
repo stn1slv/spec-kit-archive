@@ -28,7 +28,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   spec would be read back as a source on the next run, producing a ref that looks honest and is not.
   The "materially changes scope or correctness" filter is also scoped explicitly to discretionary
   questions, so an Always-ask category can no longer be dropped on the grounds that no answer would
-  change what gets written.
+  change what gets written. Conflicts and obligations are asked as separate questions, since an
+  obligation may be closed as an accepted gap and a conflict may not.
+- **What an unresolved constitution conflict does is now stated.** The command said in three places
+  that a conflict must be resolved "before archival can proceed" and nowhere said what happens when
+  the user does not resolve one, leaving an agent free to halt the run or to continue. It now says
+  once: the conflicting item alone is withheld, everything else in the feature archives normally,
+  the run completes, and the withheld item is named in the report with a re-archive recommendation.
+  Nothing in Steps 3 to 7 aborts a run.
 - **A feature's own Constitution Check no longer settles the question.** A `plan.md` verdict of
   "No violations" records what the author believed at planning time, before the work was done.
   It is quoted in the Step 3 question when relevant, but it can no longer close a 2.1 flag on
@@ -42,7 +49,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   every later run folded into the understated field. Seeding now composes the legacy values
   together with this run's, one source ref per contributing feature, with the legacy contributor's
   ref taken through the existing Legacy refs ladder. The rule is a condition rather than a one-time
-  event, so a shared field an earlier version already created is still completed. Bounded to the
+  event, so a shared field an earlier version already created is still completed — with one
+  exception, so that a legacy value the revision note records as the losing side of a resolved
+  conflict is not re-composed on every later run, quietly undoing the user's decision. Step 2.2
+  gained a detection pass for Technical Context scalar conflicts, because 5.2 asks for a Step 3
+  question about them and Step 3 runs once, before the writing step that used to find them. Bounded
+  to the
   labelled `**Field**: value` lines of a legacy block's Technical Context, judged by structure
   rather than by the shape of the value: a section of enumerated entries stays put, because the
   reader unions a shared section with a legacy one and loses nothing, while a labelled field
