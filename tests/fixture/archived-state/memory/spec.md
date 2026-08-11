@@ -73,7 +73,7 @@ An owner receives one daily summary of all their overdue tasks instead of one me
 
 ### Edge Cases
 
-- What happens when a task's owner account is deactivated? The task moves to the team backlog with no owner; a notification pending for that owner is dropped, not sent to the backlog. [Source: specs/001-task-manager/spec.md -> "What happens when a task's owner account is deactivated?"] [Source: specs/002-notifications/spec.md -> "Owner is deactivated between scheduling and sending"]
+- What happens when a task's owner account is deactivated? The task is reassigned to the team lead, who becomes its owner; a notification pending for the previous owner is dropped, not re-sent. [Source: specs/001-task-manager/spec.md -> "What happens when a task's owner account is deactivated?"] [Source: specs/002-notifications/spec.md -> "Owner is deactivated between scheduling and sending"]
 - Deadline set in the past: the task is created but immediately flagged as overdue. [Source: specs/001-task-manager/spec.md -> "Deadline set in the past"]
 - Two users edit the same task at the same time: last write wins, and the earlier editor sees a notice that the task changed. [Source: specs/001-task-manager/spec.md -> "Two users edit the same task at the same time"]
 - A task's deadline is changed after its reminder was sent: a new reminder is scheduled for the new deadline. [Source: specs/002-notifications/spec.md -> "A task's deadline is changed after its reminder was sent"]
@@ -86,7 +86,7 @@ An owner receives one daily summary of all their overdue tasks instead of one me
 - **FR-002**: Users MUST be able to assign a task to exactly one owner; a task always has a single owner, and that owner is the only recipient of its deadline notifications. [Source: specs/001-task-manager/spec.md -> FR-002] [Source: specs/002-notifications/spec.md -> FR-003]
 - **FR-003**: System MUST show a paginated task list of 25 tasks per page, ordered by deadline. [Source: specs/001-task-manager/spec.md -> FR-003]
 - **FR-005**: System MUST flag a task as overdue when its deadline has passed and it is not completed. [Source: specs/001-task-manager/spec.md -> FR-005]
-- **FR-006**: When an owner account is deactivated, the system MUST move that owner's tasks to the team backlog. [Source: specs/001-task-manager/spec.md -> FR-006]
+- **FR-006**: When an owner account is deactivated, the system MUST reassign that owner's tasks to the team lead, who becomes their owner. [Source: specs/001-task-manager/spec.md -> FR-006]
 - **FR-007**: System MUST send the task owner a notification 24 hours before the task's deadline. [Source: specs/002-notifications/spec.md -> FR-001]
 - **FR-008**: System MUST send each owner at most one daily summary listing all their overdue tasks. [Source: specs/002-notifications/spec.md -> FR-002]
 - **FR-009**: Completed tasks older than 90 days MUST be automatically deleted from the system. [Source: specs/002-notifications/spec.md -> FR-004]

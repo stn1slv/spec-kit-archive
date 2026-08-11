@@ -5,6 +5,84 @@ All notable changes to the Archive extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2026-08-11
+
+### Fixed
+
+Seven ambiguities, every one of them found by an agent executing the command against the
+test fixture rather than by reading it. Five review rounds across three models had not
+surfaced any of them.
+
+- **Story insertion order no longer contradicts the never-renumber rule.** "Add, maintaining
+  priority ordering" could not be satisfied alongside "never renumber existing IDs", because a
+  new P1 story cannot sit beside the existing P1 without renumbering what follows. Story
+  numbers are IDs: they are cited in refs and retired on supersession. New stories are appended,
+  ordered among themselves, and priority is read from the heading rather than from position.
+- **Superseding one item of a multi-item scalar no longer drops refs that still vouch for
+  something.** A field like `Constraints: single region, no offline mode` carries one ref per
+  feature, so dropping the ref with the superseded item stripped attribution from clauses that
+  are still true. Dropping is now per item, and a feature's ref goes only when none of its
+  contributions to that field survive.
+- **What a template seed keeps and what it strips is stated.** Instructional comments, section
+  annotations, example entries, and sections about authoring one feature's own files are
+  removed; every other heading stays, empty, because an empty heading tells the next run where
+  content belongs and a deleted one loses that silently.
+- **The source-ref ladder covers plan content.** It was written around spec items, leaving
+  unnumbered plan fields to inference. A labelled Technical Context field cites its own label; a
+  routing or configuration bullet cites its opening phrase.
+- **A feature's own `## Constitution Check` is never archived.** It is a planning-time
+  self-assessment, which is why 2.1 treats it as input rather than a verdict. Archiving it put a
+  claim into main memory that went stale as soon as the thing it described changed: one fixture
+  run left the plan asserting "completed tasks kept forever" after that rule had been retired.
+- **A supersession can leave prose behind that no ID scan finds.** Retiring `FR-004` does not
+  remove a sentence describing what it required. After a removal, the command now names any
+  passage that plainly restates the retired behavior, in the same four files it already scans.
+  Report only, never a rewrite, because deciding a passage is about the retired behavior is
+  judgment that can be wrong.
+- **The 2.5 counts describe pairs 2.5 shortlisted, and nothing else.** A supersession candidate
+   2.4 found by its own criteria is reported under Superseded Requirements and does not enter the
+  examined tally, so its absence there is not a gap.
+- **A same-named entity whose definition is withheld by a constitution conflict now gets the same
+  closure as a declined supersession.** Two fixture runners reached opposite conclusions here, which
+  is what identified it: 5.1's entity exception already prescribed keeping the existing entry and
+  recording the pair, but named only two triggers, so whether it applied to a conflict was a guess.
+  A withheld definition leaves no trace in `spec.md`, so without the record nothing raises it again.
+  Content whose conflict the user **clears** is unaffected and archives normally, and the removal of
+  an existing entry still requires its own supersession confirmation — no conflict answer stands in
+  for it.
+
+- **A plan's Constitution Check can be the record a rule asks for, and 2.1 now says which is which.**
+  "Input, not a verdict" was written to stop a compliance claim closing a flag, but it also read as
+  barring the section from containing content a rule genuinely requires. A fixture runner hit this on
+  Principle II's "changing a retention rule MUST be recorded" clause, flagged its own uncertainty, and
+  stated that the two readings archive or withhold the same requirement. The test is now what the
+  sentence does: "we checked and it is fine" is a verdict and closes nothing; "here is what we changed
+  and why" is the record the rule demanded.
+- **2.4's "whole entries only" test has a decision procedure.** Two runners reached opposite verdicts
+  on the same pair. Ask whether any case the existing entry governs is still governed correctly: if
+  so it is partial. An entry of several independent prose clauses is partial when only some are
+  contradicted; an explicit statement that the feature replaces, deprecates or removes prior behavior
+  makes it whole. When still unsure, treat it as partial, because reporting a contradiction is
+  recoverable and removing a rule that still held is not. Two things the procedure does not govern:
+  an entity's fields are not independent clauses, so an incompatible redefinition still reaches the
+  supersession flow; and a re-raised pair has no incoming item, so the tie-break must not swallow it.
+- **A partial contradiction is reported under Outstanding Items**, naming both entries and stating
+  that nothing will re-raise it, since a partial verdict never becomes a candidate.
+- **Revision notes have a fixed place, form and scope.** They go in `spec.md` and `plan.md` only, as
+  blockquotes under the document title, newest last, never rewritten, and a run may write several
+  lines when it has several things to record. The changelog entry and the agent file's Recent Changes
+  bullet already name every run, so a second record there says nothing. Placement is fixed because
+  later runs read these notes: 5.2's settled-conflict exception depends on finding one an earlier run
+  wrote. Notes an older version placed elsewhere are left where they are and the split is reported.
+
+### Testing
+
+Feature `005-shared-ownership` was added to the fixture to close the one path v1.2.1 shipped
+unexecuted: withholding an item over an unresolved constitution conflict, and the
+`replacement withheld` closure. Its FR-001 contradicts Principle I outright, and its FR-004
+both replaces a single-clause main entry and conflicts, which is what makes the pairing warning
+observable.
+
 ## [1.2.1] - 2026-08-11
 
 ### Fixed

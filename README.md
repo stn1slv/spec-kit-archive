@@ -15,6 +15,7 @@ This extension acts as the "Outer Loop" of the Double-Loop Parity framework: it 
 - **Consolidation**: A detection pass keys every incoming item with a semantic slug, shortlists lookalike pairs against the existing entries, and issues an explicit fold / separate / contradiction verdict per pair — then folds exactly the fold verdicts, so the main spec stays a single consolidated specification instead of a per-feature digest. The report always states how many pairs were examined and folded, so "zero duplicates" means "examined and found distinct", not "did not look". Existing entries are never merged into each other, so an established requirement ID cannot disappear behind your back.
 - **Traceability**: Adds item-level `[Source: specs/###-feature-name/spec.md -> FR-012]` refs and revision notes in the main memory artifacts. A ref names the artifact the content actually came from (`spec.md`, `plan.md`, `data-model.md`), and an entry consolidated from several features carries one ref per feature.
 - **Supersession**: Detects requirements a later feature wholly replaces and asks you to confirm before deleting anything. Confirmed removals are deleted from the main spec and recorded in `changelog.md`, and their IDs are never reissued. Anything you do not confirm stays put and is recorded as an unresolved contradiction, so the next archival raises it again instead of losing it.
+- **Constitution compliance**: Checks each feature against the project constitution in three ways, because a MUST rule can fail in more than one. A **conflict** is feature content that contradicts a rule; you are asked, and an unresolved one withholds *that item only* while the rest of the feature archives normally. An **unmet obligation** is a rule requiring a statement the feature never makes ("every feature that stores user data MUST state its retention rule") — asked, but never a reason to withhold anything. An **action-requiring** rule ("all API routes MUST have automated tests") is reported as unverified and never flagged, because this command reads artifacts and cannot inspect a test run: a plan claiming coverage is a claim, not a verification. A feature's own `## Constitution Check` is read but never archived, and it cannot close a flag by asserting compliance — though a sentence in it recording what changed and why does satisfy a rule that asks for exactly that.
 - **Bounded inputs**: Declares the complete list of files it may take content from. Git history, deleted files, ad-hoc notes and agent memory stores are not sources, and a missing artifact is never reconstructed. This is what keeps runs reproducible and keeps the `[Source: ...]` refs honest.
 - **Bug awareness**: Works with bugfix extensions (such as `spec-kit-bugfix`) without taking requirement text from bug reports — patched amendments arrive through the feature's own artifacts, where struck-through text is never archived as live. Each `bugs/` report is audited by status (treated as a claim, not a verification), addressed bug IDs land in the changelog entry, and root-cause analyses feed the agent file's Known Issues.
 - **Reporting**: Mandates absolute paths in the final Archival Report, ensuring logs are always useful regardless of your CWD.
@@ -28,14 +29,14 @@ The command checks `.specify/extensions.yml` for `before_archive` and `after_arc
 You can install this extension via the Spec-Kit CLI:
 
 ```bash
-specify extension add archive --from https://github.com/stn1slv/spec-kit-archive/archive/refs/tags/v1.2.1.zip
+specify extension add archive --from https://github.com/stn1slv/spec-kit-archive/archive/refs/tags/v1.2.2.zip
 ```
-*(Note: Replace `v1.2.1` with the latest release version)*
+*(Note: Replace `v1.2.2` with the latest release version)*
 
 To upgrade an existing installation, add `--force` — without it the CLI refuses to overwrite the installed version:
 
 ```bash
-specify extension add archive --from https://github.com/stn1slv/spec-kit-archive/archive/refs/tags/v1.2.1.zip --force
+specify extension add archive --from https://github.com/stn1slv/spec-kit-archive/archive/refs/tags/v1.2.2.zip --force
 ```
 
 ## Usage
