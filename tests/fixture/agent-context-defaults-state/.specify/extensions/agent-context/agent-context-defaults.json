@@ -1,0 +1,11 @@
+{
+  "_comment": "Trimmed copy of the agent-context defaults map. Only the entries the fixture needs.",
+  "agents": {
+    "claude": "CLAUDE.md",
+    "codex": "AGENTS.md",
+    "copilot": ".github/copilot-instructions.md",
+    "cursor-agent": ".cursor/rules/specify-rules.mdc",
+    "gemini": "GEMINI.md",
+    "qwen": "QWEN.md"
+  }
+}

@@ -1,0 +1,7 @@
+# Coding Agent Context Extension Configuration
+#
+# The state a fresh `specify extension add agent-context` leaves behind:
+# neither key names a file, so the extension self-seeds from
+# agent-context-defaults.json using the integration in init-options.json.
+context_file: ""
+context_files: []

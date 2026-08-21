@@ -216,7 +216,9 @@ The two new features are added **inside `project/`** rather than as an overlay, 
 | T43 | `extensions.yml` `installed` uses the bare id `bug` | `bug-extension-state/` | 0.6's "is" branch, which no earlier round has run |
 | T44 | Reports use the **real** `bug` templates: `## Root Cause Hypothesis`, `**Slug**`/`**Verdict**`/`**Severity**`, no `Type`, no `Status` in `assessment.md` | `bug-extension-state/` | Whether the command reads the headings the tool actually writes, rather than a plausible-sounding variant |
 | T45 | The base fixture's agent file carries **legacy** basename bullets (`- 001-task-manager:`) | `project/AGENTS.md:23`, `archived-state/AGENTS.md:26-27` | Re-archiving must update that bullet **in place** and upgrade it to the `FEATURE_ID` form, never append a second bullet |
-| T46 | `{SCRIPT}` returns a good `REPO_ROOT` with an empty `FEATURE_DIR` | any clean run | The normal `--paths-only` case. Must **not** be reported as a fallback; the walk-up is only for a missing `REPO_ROOT` |
+| T46 | `{SCRIPT}` fails, or returns a good `REPO_ROOT` | any clean run | Only a missing `REPO_ROOT` triggers recovery; an empty `FEATURE_DIR` never does |
+| T47 | `agent-context` config present but naming nothing, with `integration: copilot` | `agent-context-defaults-state/` | Whether the defaults lookup runs, or the run falls through to a probe that cannot find `.github/copilot-instructions.md` |
+| T48 | Every in-body command reference is a `__SPECKIT_COMMAND_*__` token | `commands/archive.md` | A literal `/speckit.…` surviving anywhere means non-dot agents are told to run a command that does not exist |
 
 ### Case Q1 — timestamped feature, full scope, clean `project/`
 
@@ -270,7 +272,7 @@ Each must produce the one-feature-per-run error and **write nothing** (I7). Veri
 
 Overlay `agent-context-state/` over a clean `project/`; `/speckit.archive.run specs/001-task-manager`
 
-- Discovery reports the **config** branch and **four** configured targets.
+- Discovery reports the **config** branch, branch (a), and **four** configured targets. It must not consult `init-options.json` or the defaults map: a config that names files ends the ladder.
 - `AGENTS.md` and `docs/agent/CLAUDE.md` are written, each receiving the same section set. **T37** confirms the nested path is honoured.
 - **T38**: nothing is written between `<!-- TEAM CONTEXT START -->` and `<!-- TEAM CONTEXT END -->` in `AGENTS.md`; the sections land in the writable regions above or below it. The managed block's own text is byte-for-byte unchanged.
 - **T35**: `GEMINI.md` is skipped and named — it has no region outside its markers. A run that writes into it has almost certainly ignored the config and fallen back, since `GEMINI.md` is the first fallback name.
@@ -311,13 +313,22 @@ Overlay `archived-state/` over a clean `project/`; `/speckit.archive.run specs/0
 
 This case also covers Case G2's documented expectation (`EXPECTATIONS.md`: "an **in-place** completion (no duplicate Recent Changes bullet)") against the new rule.
 
+### Case R3 — agent context via the defaults lookup
+
+Overlay `agent-context-defaults-state/` over a clean `project/`, **delete the root `AGENTS.md`**, then `/speckit.archive.run specs/001-task-manager`
+
+- **T47**: discovery reports **branch (b)** and resolves `.github/copilot-instructions.md`, from `"integration": "copilot"` in `.specify/init-options.json` against the defaults map. Reporting the last-resort probe, or skipping 5.3 for want of a file, both mean the lookup did not happen and are misses.
+- The file's legacy basename bullet is upgraded in place to `specs/001-task-manager` (**T45** again, on the branch a real project most often takes).
+- Nothing is created: no `AGENTS.md`, `CLAUDE.md` or `GEMINI.md` appears.
+- The config is present but names nothing, so branch (a) must end without resolving a target rather than being treated as absent.
+
 ### Case Ctl — control, mandatory
 
 Re-run **Case K** exactly as round 5 ran it: `/speckit.archive.run specs/004-attachments`, full scope, clean `project/`, no overlay.
 
 Compare against `BASELINE-v1.2.2.md`'s Case K result. The v1.3.0 edits to Allowed Sources, the Edit Rules, 5.3, 5.4 and the Step 6 template must not have perturbed it:
 
-- The agent file resolves by the **fallback** probe (a clean `project/` has no `agent-context` config), finding `AGENTS.md` — `GEMINI.md` does not exist there. The report must say the fallback branch was taken, and name its known limit.
+- The agent file resolves by the **last-resort probe**, branch (c): a clean `project/` has no `agent-context` config and no `.specify/init-options.json`, so neither of the earlier branches names anything. It finds `AGENTS.md` — `GEMINI.md` does not exist there. The report must say that branch was taken and recommend setting `context_file`.
 - **T46**: `{SCRIPT}` returns a good `REPO_ROOT` with an empty `FEATURE_DIR`, which is the normal `--paths-only` result. `## Path Resolution` must read "Resolved from argument", **not** report a walk-up fallback. Reporting a fallback here means the run keyed the fallback on `FEATURE_DIR` instead of `REPO_ROOT`.
 - 001's legacy basename bullet in `project/AGENTS.md:23` is a different feature from the one being archived (004), so it stays untouched.
 - Only 004's feature-scoped `bugs/` is audited; a clean `project/` has no `.specify/bugs/`, so no repo-level pass happens and the report says nothing about attribution counts.
