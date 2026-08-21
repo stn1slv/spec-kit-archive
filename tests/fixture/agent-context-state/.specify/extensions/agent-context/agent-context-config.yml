@@ -1,0 +1,17 @@
+# Coding Agent Context Extension Configuration
+
+# Single context file. Ignored here because context_files below is non-empty.
+context_file: "GEMINI.md"
+
+# Several anchors kept in sync. Takes precedence over context_file.
+# Deliberately includes a nested path and one file that does not exist on disk.
+context_files:
+  - AGENTS.md
+  - docs/agent/CLAUDE.md
+  - GEMINI.md
+  - QWEN.md
+
+# Custom markers, not the <!-- SPECKIT ... --> defaults.
+context_markers:
+  start: "<!-- TEAM CONTEXT START -->"
+  end: "<!-- TEAM CONTEXT END -->"

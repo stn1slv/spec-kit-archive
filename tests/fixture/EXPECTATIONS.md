@@ -177,3 +177,132 @@ Until v1.2.2, `001-task-manager`'s FR-006 read "MUST move that owner's tasks to 
 It went undetected because earlier rounds answered every constitution question with "record it as an accepted gap", which is legal only for an obligation. Once the round-5 answer policy separated conflicts (answered "leave it unresolved"), a runner flagged FR-006 and withheld it, and the run's ID numbering shifted because 001's FR-006 was never written.
 
 FR-006 now reassigns to the team lead, who becomes the owner, in `project/`, `archived-state/` and `legacy-state/` alike. The deliberate constitution conflict lives in 005, where it is registered. Any baseline recorded before this correction was produced against the old text; a run that flags 001's FR-006 today is a miss.
+
+---
+
+## Round 6 cases (v1.3.0 verification; committed before any round-6 run)
+
+v1.3.0 is a compatibility release. Three of its changes alter prescriptive behavior and are verified here: **B** (feature-directory identification), **C** (agent context file discovery) and **D** (the first-party `bug` extension's repo-level report layout). The other three (`py:` in frontmatter, `category`/`effect` in the manifest, the `>=0.14.0` floor) are declarations no fixture exercises; they are verified by inspection and by an install smoke test.
+
+B, C and D edit **shared text** — Allowed Sources, the Edit Rules, 5.3, 5.4 and the Step 6 report template — which every earlier case exercises. So this round is not only its own new cases: **Case Ctl is mandatory**, and a round without it proves nothing about the cases that already passed.
+
+### New fixture material
+
+| Path | Added for |
+|---|---|
+| `project/specs/20260814-101500-timestamped-export/` | B — a timestamped feature directory |
+| `project/specs/billing/006-invoice-settings/` | B — a nested feature under a scope directory that holds no `spec.md` of its own |
+| `../agent-context-state/` | C — the config branch, four targets, custom markers |
+| `../bug-extension-state/` | D — repo-level reports in both attribution channels, plus one attributed by neither |
+
+The two new features are added **inside `project/`** rather than as an overlay, which is safe because every existing case names its own feature explicitly and none enumerates `specs/`. The two overlays follow the `legacy-state/` / `archived-state/` pattern precisely because they *would* perturb existing cases.
+
+### Traps
+
+| # | Trap | Location | What it tests |
+|---|---|---|---|
+| T31 | Feature name carries a timestamp, not a three-digit prefix | `20260814-101500-timestamped-export` | Whether anything still keys on `###`; ID assignment, refs and the changelog link must all cope |
+| T32 | Feature sits two levels down, under a scope directory | `billing/006-invoice-settings` | Refs and the `**Spec:**` link must carry the full relative path; `../../specs/billing/...` must resolve |
+| T33 | `specs/billing/` contains no `spec.md`, only a feature beneath it | `project/specs/billing/` | The new scope-directory error; it must never expand into a batch run |
+| T34 | Feature name contains the word `to` | `...-migrate-to-postgres` in guidance | The `to` carve-out, now against a timestamped name |
+| T35 | `GEMINI.md` is the first fallback name **and** is entirely marker-enclosed | `agent-context-state/` | A run that ignores the config and falls back writes to the one file with no writable region |
+| T36 | A configured target does not exist on disk (`QWEN.md`) | `agent-context-state/` | Skip-and-report, never create |
+| T37 | A configured target sits at a nested path | `docs/agent/CLAUDE.md` | Entries are project-relative, not root-only |
+| T38 | Markers are `<!-- TEAM CONTEXT ... -->`, not the SPECKIT default | `agent-context-state/` | Whether the config's marker values are honoured, or a hardcoded default is assumed |
+| T39 | A repo-level report is attributed only by its own `**Feature**:` header, and claims `Status: Fixed` | `attachment-quota-drift` | Channel (b) can add an **unverified** entry but must never reach `**Bugs addressed:**` |
+| T40 | A repo-level report is attributed by neither channel | `report-timezone` | Must not be read, classified, or listed — only counted |
+| T41 | `fix.md` and `test.md` carry requirement-shaped `MUST` sentences | `bug-extension-state/` | The bounded read: these files are never read beyond a Root Cause Analysis |
+| T42 | A `**Bugfix**:` annotation names a **slug**, not a `BUG-###` ID | 004's patched FR-004 | The slug must be carried verbatim, never normalised into an invented number |
+| T43 | `extensions.yml` `installed` uses the bare id `bug` | `bug-extension-state/` | 0.6's "is" branch, which no earlier round has run |
+
+### Case Q1 — timestamped feature, full scope, clean `project/`
+
+`/speckit.archive.run specs/20260814-101500-timestamped-export`
+
+- Archives normally. **T31**: nothing rejects or mangles the name.
+- Refs read `[Source: specs/20260814-101500-timestamped-export/spec.md -> FR-001]` — the full directory name, never a truncated or renumbered form, and never a synthesised `###` prefix.
+- The changelog `**Spec:**` link is `[specs/20260814-101500-timestamped-export/spec.md](../../specs/20260814-101500-timestamped-export/spec.md)`.
+- The agent file's Recent Changes bullet names `specs/20260814-101500-timestamped-export`.
+- On an empty memory spec the feature's own IDs carry across unchanged (FR-001..006, SC-001..002); on a populated one they continue above the highest existing ID. Either is correct for its starting state; inventing a numeric feature prefix is not.
+
+### Case Q2 — nested feature, full scope, clean `project/`
+
+`/speckit.archive.run specs/billing/006-invoice-settings`
+
+- **T32**: refs carry `specs/billing/006-invoice-settings/...`; a ref naming only `006-invoice-settings` is a miss.
+- The `**Spec:**` link is `../../specs/billing/006-invoice-settings/spec.md` and resolves from `.specify/memory/`.
+- The Recent Changes bullet names the full relative path.
+
+### Case Q3 — prefix expansion and the scope-directory error
+
+Two invocations, each its own agent and clean copy:
+
+1. `/speckit.archive.run specs/billing/006` — expands to `specs/billing/006-invoice-settings`, because exactly one feature directory under `specs/billing/` has that prefix. Archives normally.
+2. `/speckit.archive.run specs/billing` — **T33**: stops with the scope-directory error, naming the feature directories it holds. **Nothing is written.** Expanding it into a run over the features beneath it is the worst possible miss: it is the batch mode this command does not have.
+
+A third check, same protocol: `/speckit.archive.run specs/006` must **not** find `specs/billing/006-invoice-settings`. Prefix expansion is non-recursive, so this is a resolution failure, not a match.
+
+### Case Q4 — input rejection
+
+Four invocations, each its own agent and clean copy. **These are the first input-rejection cases ever run**; `BASELINE-v1.2.2.md` lists them as uncovered.
+
+| Input | Invariant |
+|---|---|
+| `specs/001 thru specs/005` | I1/I3 — word range marker between two references |
+| `specs/2026*` | I2 — glob inside a path-shaped reference, now matching a timestamp prefix |
+| `specs/001-task-manager specs/002-notifications` | I1 — two path-shaped references |
+| `specs/billing/006 thru 008` | I3 — range marker with a nested reference on one side |
+
+Each must produce the one-feature-per-run error and **write nothing** (I7). Verify by comparing the whole working copy before and after: any modification, including a created `.specify/memory/` or a persisted `feature.json`, is a miss.
+
+### Case Q5 — the `to` carve-out against a timestamped name
+
+`/speckit.archive.run specs/20260814-101500-timestamped-export Watch the 3 edge cases and any handling of 404 errors when we migrate to postgres.`
+
+- **T34**: accepted and archived. The `to` in `migrate to postgres` is prose, not a range marker: its neighbours are not feature references.
+- **I5**: `3` and `404` stay guidance; neither is read as a feature.
+- The guidance is echoed verbatim under `## Guidance`.
+
+### Case R1 — agent context discovery, config branch
+
+Overlay `agent-context-state/` over a clean `project/`; `/speckit.archive.run specs/001-task-manager`
+
+- Discovery reports the **config** branch and **four** configured targets.
+- `AGENTS.md` and `docs/agent/CLAUDE.md` are written, each receiving the same section set. **T37** confirms the nested path is honoured.
+- **T38**: nothing is written between `<!-- TEAM CONTEXT START -->` and `<!-- TEAM CONTEXT END -->` in `AGENTS.md`; the sections land in the writable regions above or below it. The managed block's own text is byte-for-byte unchanged.
+- **T35**: `GEMINI.md` is skipped and named — it has no region outside its markers. A run that writes into it has almost certainly ignored the config and fallen back, since `GEMINI.md` is the first fallback name.
+- **T36**: `QWEN.md` is skipped and named, and **is not created**.
+- `## Changed Files` carries one row per file written, plus the two skips with their reasons.
+
+### Case R2 — `--agent-only` on the same overlay
+
+Same overlay; `/speckit.archive.run specs/001-task-manager --agent-only`
+
+- Both writable targets are updated: `--agent-only` covers **all** discovered context files, not the first one.
+- `.specify/memory/` is untouched.
+- The two skips are reported again with their reasons; the run completes rather than stopping on them.
+
+### Case P — both bug layouts in one run
+
+Overlay `bug-extension-state/` over a clean `project/`; `/speckit.archive.run specs/004-attachments`
+
+- The audit covers **five** reports as one set: 004's own `BUG-001` and `BUG-002` (feature-scoped) plus `thumbnail-orientation` and `attachment-quota-drift` (repo-level, attributed). `report-timezone` is **not** among them.
+- **T42**: `thumbnail-orientation` classifies **addressed** — the FR-004 annotation names it — and its slug appears verbatim in `**Bugs addressed:**`, beside `BUG-001`. A synthesised `BUG-003` is a miss.
+- **T39**: `attachment-quota-drift` classifies **unverified** despite `Status: Fixed`, and does **not** appear in `**Bugs addressed:**`. It may appear under Known Issues and in the Step 6 status listing.
+- **T40**: `report-timezone` is neither listed nor described. The report states that `.specify/bugs/` holds three reports and that two were attributed, so its exclusion is visible as a count.
+- **T41**: none of these phrases appears anywhere under `.specify/memory/` or in any agent context file's requirement content — `normalize EXIF orientation`, `reject any image whose orientation tag cannot be parsed`, `enforce the per-team storage quota at commit time`. Grep for them; a hit is an outright failure of the bounded read.
+- Root-cause analyses from both attributed reports reach the agent file's Known Issues, titled by slug.
+- **T43**: 0.6 reports a bugfix extension installed, matching the bare id `bug`.
+- FR-004's `**Bugfix**:` annotation is metadata: the requirement archives, the annotation does not.
+
+### Case Ctl — control, mandatory
+
+Re-run **Case K** exactly as round 5 ran it: `/speckit.archive.run specs/004-attachments`, full scope, clean `project/`, no overlay.
+
+Compare against `BASELINE-v1.2.2.md`'s Case K result. The v1.3.0 edits to Allowed Sources, the Edit Rules, 5.3, 5.4 and the Step 6 template must not have perturbed it:
+
+- The agent file resolves by the **fallback** probe (a clean `project/` has no `agent-context` config), finding `AGENTS.md` — `GEMINI.md` does not exist there.
+- Only 004's feature-scoped `bugs/` is audited; a clean `project/` has no `.specify/bugs/`, so no repo-level pass happens and the report says nothing about attribution counts.
+- Refs, IDs and the changelog entry match the v1.2.2 result.
+
+Differences confined to the new report lines (discovery branch, target count) are acceptable and expected. Any difference in archived **content** is a regression and blocks the release.
