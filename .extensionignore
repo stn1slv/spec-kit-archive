@@ -1,0 +1,15 @@
+# Files excluded from the installed copy of this extension.
+# Only what a user needs at runtime should survive: the command file, the
+# manifest, and the docs that explain them. Everything below is development
+# material that would otherwise be copied into every project's
+# .specify/extensions/archive/ directory.
+
+# Test fixture and recorded baselines (the largest item by far — a whole
+# sample spec-kit project plus one baseline per released version)
+tests/
+
+# Local agent and editor settings
+.claude/
+
+# Repository plumbing that means nothing outside this repo
+.gitattributes

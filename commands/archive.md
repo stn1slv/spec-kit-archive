@@ -1,9 +1,10 @@
 ---
 description: "Archive a feature specification into main project memory after merge, resolving gaps and conflicts"
-argument-hint: "specs/###-feature-name [--spec-only|--plan-only|--changelog-only|--agent-only] [guidance text]"
+argument-hint: "<feature-dir> [--spec-only|--plan-only|--changelog-only|--agent-only] [guidance text]"
 scripts:
   sh: ../../scripts/bash/check-prerequisites.sh --json --paths-only
   ps: ../../scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly
+  py: ../../scripts/python/check_prerequisites.py --json --paths-only
 ---
 Act as the **Chief Software Architect** and **Documentation Maintainer**.
 A feature has been merged into the `main` branch. Your goal is to **archive** the feature specification into the main project memory — ensuring completeness, resolving conflicts, closing gaps, and respecting the project constitution.
@@ -23,27 +24,34 @@ You **MUST** consider the user input before proceeding (if not empty).
 **This command archives exactly one feature per run.** There is no batch or range mode. To archive several features, run the command once per feature in ascending feature order, so each run sees the result of the one before it.
 
 Parse `$ARGUMENTS` as follows:
-- **First token**: feature spec directory path (e.g., `specs/007-invoice-settings`)
+- **First token**: feature spec directory path. Spec-kit projects name these directories in more than one way, and all of them are valid here: sequential (`specs/007-invoice-settings`), timestamped (`specs/20260814-101500-invoice-settings`, produced by `specify` with timestamp numbering), and nested under a scope directory (`specs/billing/006-invoice-settings`). Nothing in this command may key on a three-digit prefix.
 - **Then**: scope modifiers (optional, `--` flags immediately after the path), followed by optional free-form guidance text
 
 **Supported scope modifiers** (if none provided, update all artifacts):
 - `--spec-only` — update only `.specify/memory/spec.md`
 - `--plan-only` — update only `.specify/memory/plan.md`
 - `--changelog-only` — update only `.specify/memory/changelog.md`
-- `--agent-only` — update only the agent knowledge file (GEMINI.md / AGENTS.md / CLAUDE.md)
+- `--agent-only` — update only the agent context file(s), as discovered by Step 5.3; when a project keeps several in sync, this covers all of them
 
 If **several** scope modifiers are supplied, the scope is their **union** — `--spec-only --changelog-only` updates both `spec.md` and `changelog.md` and nothing else. "Only" bounds the whole set, not each flag individually.
 
 **Validate everything else.** The first three checks are textual and run before Step 0; the fourth needs `REPO_ROOT` and so runs as soon as 0.1 has resolved it, still ahead of every write. **No file is written when any of them fails** — a rejected invocation must leave the repository exactly as it found it. What survives the four checks is a scope modifier or guidance text; there is no third category.
 
-1. **Empty input, or no feature at all.** If `$ARGUMENTS` is empty, **or the first token starts with `--`** (the feature path must come first, before any modifier), output `ERROR: No feature spec directory provided. Usage: /speckit.archive.run specs/###-feature-name [--scope-modifier] [guidance]` and stop.
-2. **More than one feature.** This check comes **before** the flag check, so a range or a second path gets the guidance below rather than a generic parse error. Reject when the input covers more than one feature. The checks key on **feature-shaped tokens** — a token whose path contains a `specs/###` segment in any form, with or without the trailing name (`specs/002-x`, `specs/001`, `../specs/002-x`, `/repo/specs/002-x`; a glob character may stand in for digits, as in `specs/00*`), or a bare feature number or name such as `007` or `007-invoice-settings`. A `specs/` path counts **anywhere** in the input; a bare number or name counts only **in the leading region** (before the first prose token), or **beside a range marker whose other side is a feature reference** (the `008` in `specs/001 thru 008`) — digits inside later prose (`handle 404 errors`, `max 500 items`, `attention to 3 edge cases`) are guidance, and so is ordinary punctuation (`double-checked?`, `billing/invoicing`, `*emphasis*`):
+Rules 2 and 4 have **different jobs**, and keeping them apart is what lets each stay simple. Rule 2 is a **textual guard against batch intent**: it runs before Step 0, touches no filesystem, and exists only to answer an obvious range or glob with a helpful "one feature per run" message instead of a confusing one. It is allowed to be under-inclusive. Rule 4 is the **correctness gate**: it touches the filesystem and decides what actually gets archived. Never move filesystem knowledge into rule 2, and never rely on rule 2 to establish that a path is valid.
+
+1. **Empty input, or no feature at all.** If `$ARGUMENTS` is empty, **or the first token starts with `--`** (the feature path must come first, before any modifier), output `ERROR: No feature spec directory provided. Usage: /speckit.archive.run <feature-dir> [--scope-modifier] [guidance]` and stop.
+2. **More than one feature.** This check comes **before** the flag check, so a range or a second path gets the guidance below rather than a generic parse error. Reject when the input covers more than one feature. The checks key on **feature-shaped tokens**, which are these two forms together:
+
+   - a **path-shaped feature reference** — a whitespace-free token containing a `specs/` path segment followed by at least one further non-empty segment (`specs/002-x`, `specs/001`, `specs/billing/006-invoice`, `specs/20260814-101500-export`, `../specs/002-x`, `/repo/specs/002-x`), including glob forms such as `specs/00*` or `specs/2026*`
+   - a **bare feature reference** — a whitespace-free token that **begins with a digit** (`007`, `007-invoice-settings`, `20260814-101500-export`)
+
+   A path-shaped reference counts **anywhere** in the input; a bare one counts only **in the leading region** (before the first prose token), or **beside a range marker whose other side is a feature reference** (the `008` in `specs/001 thru 008`) — digits inside later prose (`handle 404 errors`, `max 500 items`, `attention to 3 edge cases`) are guidance, and so is ordinary punctuation (`double-checked?`, `billing/invoicing`, `*emphasis*`):
    - two or more feature-shaped tokens
    - a glob character (`*` or `?`) **inside a feature-shaped token** (`specs/00*`, `0??-export`)
    - a **word** range marker — `thru`, `through`, or `to` — appearing as a whole token between two feature references (`specs/001 thru specs/008`, `specs/001 thru 008`)
    - a `..` **separating two feature references inside a single token** (`specs/001..specs/008`, `001..008`)
 
-   A word marker only counts as a whole token, never as part of a directory name, so `specs/003-import-to-csv` and `specs/012-through-put` are legitimate single features. A `..` only counts when it sits between two feature references, so the leading `../` of a relative path such as `../specs/001-foo` is not a range. On a match, output:
+   A word marker only counts as a whole token, never as part of a directory name, so `specs/003-import-to-csv`, `specs/012-through-put` and `specs/20260814-101500-migrate-to-postgres` are legitimate single features. A `..` only counts when it sits between two feature references, so the leading `../` of a relative path such as `../specs/001-foo` is not a range. On a match, output:
    ```
    ERROR: This command archives one feature per run — no ranges or globs.
    Run it once per feature, in ascending order:
@@ -52,7 +60,7 @@ If **several** scope modifiers are supplied, the scope is their **union** — `-
    ```
    and stop.
 3. **Unrecognized flag.** Flags are recognized **only until the first non-flag token**: a `--` token in that leading position that is not one of the four modifiers gets `ERROR: Unrecognized flag '[token]'. Supported: --spec-only, --plan-only, --changelog-only, --agent-only.` and stops the run. From the first non-flag token onward, everything — including words that start with `--`, such as guidance about a `--force` flag — is **guidance text** (see Guidance Text below), taken verbatim. Rule 2 has already run, so a second feature reference, range, or glob written in any form rule 2 recognizes has already been rejected before guidance exists.
-4. **Ambiguous first token.** The first token must resolve to **exactly one** existing directory under `REPO_ROOT`. A numeric prefix such as `specs/001` may expand to `specs/001-name-of-feature` only when exactly one directory matches. If nothing matches, or more than one does, output `ERROR: '[token]' does not resolve to exactly one feature directory` — listing the matches when there are several — and stop.
+4. **Ambiguous first token.** The first token must resolve to **exactly one** existing directory under `REPO_ROOT`, by the resolution ladder in 0.1 step 2. If nothing matches, or more than one does, output `ERROR: '[token]' does not resolve to exactly one feature directory` — listing the matches when there are several — and stop. If it resolves to a **scope directory** rather than a feature, 0.1 step 2 stops with its own message instead.
 
 ### Guidance Text
 
@@ -68,7 +76,9 @@ Guidance **steers, never overrides**. It may direct your attention and emphasis,
 
 When guidance asks for something on this list, do not comply and do not stop: run the command normally and state in the report which part of the guidance was set aside and why. Guidance makes runs harder to reproduce, so the Step 6 report echoes it verbatim under `## Guidance` — a reviewer can always see what shaped the run, and a run with no guidance is the reproducible baseline.
 
-One consequence of the ordering: rule 2 runs before guidance is classified, so a `specs/...` path anywhere in the input — or a bare feature number in the leading region or paired with a range word and another feature reference — is rejected as a second feature even when it was meant as guidance. Ordinary prose, punctuation, and numbers inside sentences are safe; refer to other features by name in prose ("the invoice feature") when guidance must mention one.
+One consequence of the ordering: rule 2 runs before guidance is classified, so a `specs/...` path anywhere in the input — or a bare feature reference in the leading region or paired with a range word and another feature reference — is rejected as a second feature even when it was meant as guidance. Ordinary prose, punctuation, and numbers inside sentences are safe; refer to other features by name in prose ("the invoice feature") when guidance must mention one.
+
+Note that a path-shaped reference is now recognized by its **shape**, not by a three-digit prefix, so **any** `specs/<something>` token in guidance is rejected — `specs/billing`, `specs/archive-notes` and `specs/old` included, where an earlier version of this command tolerated them. This is the price of supporting timestamped and nested feature directories, and it is deliberate: a guidance sentence that must mention a path should name it in prose without the `specs/` prefix.
 
 ---
 
@@ -77,23 +87,48 @@ One consequence of the ordering: rule 2 runs before guidance is classified, so a
 Everything you write into main project memory must come from the files below. **This list is complete.**
 
 - The artifacts inside `FEATURE_DIR` — the `bugs/` subdirectory only through the **two bounded reads** defined in the exclusions below, everything else fully. 0.3 inventories these artifacts and Step 1 reads the main ones; `contracts/` also feeds the steps that ask about it (2.3's Integration gap row, 5.2's Routing), while `checklists/` and `quickstart.md` are inventoried and allowed should a step ask, though today none takes content from them
+- `REPO_ROOT/.specify/bugs/<slug>/` — repo-level bug reports, and **only** through the same two bounded reads, applied to the `assessment.md` and `fix.md` of a report **attributed to this feature** (see the exclusions below). This bullet exists because these reports sit outside `FEATURE_DIR`, so the bullet above does not reach them
 - The existing files in `.specify/memory/`, `constitution.md` among them (0.4, 0.5, Step 2, Step 5)
 - `.specify/templates/` — any template a step calls for; today the seed templates in Step 0.4, plus an agent-file template where one exists (recent spec-kit versions ship none — Step 5.3 does not depend on it)
 - `.specify/extensions.yml` (Steps 0.6 and 7.1)
-- The agent knowledge file in `REPO_ROOT` (GEMINI.md / AGENTS.md / CLAUDE.md), for Step 5.3
+- The project's agent context file(s), discovered per Step 5.3
+- `.specify/extensions/agent-context/agent-context-config.yml` — read **only** to locate those files and their markers, never for content (Step 5.3). It is listed here for the same reason `.specify/extensions.yml` is: this command reads it to know where to write, not to take anything from it
 - The output of `{SCRIPT}`
 
 The step numbers above are **descriptive, not restrictive**. This list bounds *which files* you may take content from, never *which step* may read one. If a step needs a file on this list, it may read it.
 
 **Take content from nowhere else.** Not from git history, `git log`, `git show`, stashes, other branches, or any file that was deleted or renamed. Not from ad-hoc notes files. Not from an agent memory or session store. Not from another feature's spec directory: other features reach main memory only by being archived in their own run.
 
-**Two bounded exclusions inside otherwise-allowed locations.** First, a `bugs/` subdirectory of `FEATURE_DIR` (bugfix extensions write `BUG-###.md` reports into it) is **not a source of requirement text**: never merge a bug report's amendments into main memory, and never let one alter the text of an item being archived — in test runs this produced requirements silently rewritten from bug files, with the outcome depending on which agent ran the command. The sanctioned channel already exists: a bugfix extension's patch step writes its amendments into the feature's own `spec.md`/`plan.md`/`tasks.md`, which Step 1 reads normally (see **Bugfix annotations** there). Exactly **two bounded reads** of the report files are allowed: each report's header fields (bug ID and title — they share the report's first line — plus Type, Severity, `**Status**`) for the Step 1 audit, the Step 6 status listing, and the 5.3 entry titles, and each report's `## Root Cause Analysis` for the agent file's Known Issues in 5.3. Nothing else — and the Step 6 `## Sources` section declares both reads whenever they happened. Second, the feature spec's `## Clarifications` section (the Q&A session log `/speckit.clarify` maintains) is **deliberately not archived**: clarify already integrates every accepted answer into the sections this command does archive, so its decisions arrive through them. Do not copy the log, and do not carry an empty `## Clarifications` heading into main memory.
+**Two bounded exclusions inside otherwise-allowed locations.** First, bug reports are **not a source of requirement text**.
 
-*One narrow exception:* when the **Legacy refs** edit rule asks you to upgrade an existing `[Source: specs/###-feature-name]` ref — or when 5.2 seeds a shared scalar field from a legacy per-feature block and needs a ref for that block's feature, which runs the same ladder on the same directory-level ref — you may open that feature's **corresponding artifacts** — `spec.md` for an entry in the main spec (plus `data-model.md` for an entity, which is often defined there), `plan.md` for an entry in the main plan — **solely to identify which item the ref points at**, and may copy that item's ID, or its heading or opening phrase, into the ref itself. Take nothing else from those files, and never into the entry's own text. If the item cannot be identified in any of them, **leave the directory-level ref as it is** and note it in the Step 6 report: a coarse ref that is true beats a file-level ref that guesses.
+Bug reports arrive in **two layouts**, and both are handled the same way:
+
+- **feature-scoped** — `FEATURE_DIR/bugs/BUG-###.md`, written by third-party bugfix extensions such as `spec-kit-bugfix`. Location is attribution: a report here belongs to this feature by construction.
+- **repo-level** — `REPO_ROOT/.specify/bugs/<slug>/` holding `assessment.md`, `fix.md` and `test.md`, written by the first-party `bug` extension. These are **not** feature-scoped, so they require attribution (below).
+
+Never merge a bug report's amendments into main memory, and never let one alter the text of an item being archived — in test runs this produced requirements silently rewritten from bug files, with the outcome depending on which agent ran the command. The sanctioned channel already exists: a bugfix extension's patch step writes its amendments into the feature's own `spec.md`/`plan.md`/`tasks.md`, which Step 1 reads normally (see **Bugfix annotations** there).
+
+Exactly **two bounded reads** of the report files are allowed, in either layout:
+
+1. **Header fields** — the bug's identifier and title (in the feature-scoped layout they share the report's first line; in the repo-level layout they come from `assessment.md`), plus Type, Severity, `**Status**` — for the Step 1 audit, the Step 6 status listing, and the 5.3 entry titles. In the repo-level layout, read these **only from `assessment.md`'s header region**: the lines before its first `##` heading. When a repo-level report states no bug ID, **its directory slug is the identifier** — never synthesize a `BUG-###` number for a slug-named report, in the changelog or anywhere else.
+2. **`## Root Cause Analysis`** — from the report file in the feature-scoped layout, or from `assessment.md` or `fix.md` in the repo-level layout, whichever carries one — solely for the agent file's Known Issues in 5.3.
+
+**Nothing else is ever read.** In particular, `fix.md`'s body and `test.md` are **never** read at all. `fix.md` describes a change in requirement-shaped prose, which is exactly the leak this exclusion exists to prevent: a reader who is not told this will assume "the fix describes the current behavior" and merge it. The Step 6 `## Sources` section declares both reads whenever they happened.
+
+**Attributing a repo-level report — exactly two channels, and no third.** A report under `.specify/bugs/` belongs to the feature being archived only when:
+
+- **(a)** a `**Bugfix**:` annotation inside **this feature's own artifacts** names the report's ID or slug — the corroboration channel that already exists; or
+- **(b)** the report's own header fields name **this feature directory**, by `FEATURE_ID` or by its final segment when that is unambiguous.
+
+**Never attribute by anything else**: not by the slug resembling the feature's name, not by dates, not by which files a fix touched, and not by a report being the only one present. A report neither channel attributes is **not this feature's** — do not read it, do not classify it, do not list it. Report how many repo-level reports exist and how many were attributed, so a silent non-attribution stays visible rather than looking like an empty directory.
+
+This is safe because classification (Step 1) is unchanged: **addressed** still requires an annotation, and everything else is **unverified** regardless of Status. So a report attributed only by channel (b) can never reach the changelog's `**Bugs addressed:**` line; it can only add an unverified entry and Known Issues material. Second, the feature spec's `## Clarifications` section (the Q&A session log `/speckit.clarify` maintains) is **deliberately not archived**: clarify already integrates every accepted answer into the sections this command does archive, so its decisions arrive through them. Do not copy the log, and do not carry an empty `## Clarifications` heading into main memory.
+
+*One narrow exception:* when the **Legacy refs** edit rule asks you to upgrade an existing directory-level `[Source: <feature-dir>]` ref — or when 5.2 seeds a shared scalar field from a legacy per-feature block and needs a ref for that block's feature, which runs the same ladder on the same directory-level ref — you may open that feature's **corresponding artifacts** — `spec.md` for an entry in the main spec (plus `data-model.md` for an entity, which is often defined there), `plan.md` for an entry in the main plan — **solely to identify which item the ref points at**, and may copy that item's ID, or its heading or opening phrase, into the ref itself. Take nothing else from those files, and never into the entry's own text. If the item cannot be identified in any of them, **leave the directory-level ref as it is** and note it in the Step 6 report: a coarse ref that is true beats a file-level ref that guesses.
 
 **Never recover a missing artifact's previous content.** This forbids *recovering old content*, not *creating files*: Step 0.4 creating an **empty seed** for a missing memory artifact is required and unaffected. If a file above is absent, treat it as absent — Step 0.2 stops when a required feature file is missing, and a missing memory artifact counts as empty. What you must not do is go looking for that file's earlier contents in git history or a backup and continue from them. That turns a first archival into something neither you nor the user can reproduce.
 
-**Why this is strict.** An item-level `[Source: specs/###-feature/spec.md -> FR-012]` ref asserts that an entry came from a specific item in a specific feature spec. Content pulled from anywhere else still gets a ref, so the ref becomes false. This boundary is what makes the traceability mean anything.
+**Why this is strict.** An item-level `[Source: specs/007-invoice/spec.md -> FR-012]` ref asserts that an entry came from a specific item in a specific feature spec. Content pulled from anywhere else still gets a ref, so the ref becomes false. This boundary is what makes the traceability mean anything.
 
 **This bounds content, not tooling.** Running `git status` or `git diff --check` to verify what you just wrote is fine. Reading git to *obtain* requirements, plans, or prior memory to archive is not.
 
@@ -107,20 +142,38 @@ Report compliance under `## Sources` in Step 6.
 
 Resolve paths **in this order** — each step depends on the one before it, so do not reorder them.
 
-**1. `REPO_ROOT`.** Run `{SCRIPT}` and take `REPO_ROOT` from its output.
+**1. `REPO_ROOT`.** Run `{SCRIPT}` and take `REPO_ROOT` from its output. In `--json --paths-only` mode the script emits `REPO_ROOT`, `BRANCH`, `FEATURE_DIR`, `FEATURE_SPEC`, `IMPL_PLAN` and `TASKS`. Only `REPO_ROOT` is used here; `FEATURE_DIR` is read but deliberately discarded (see step 2), and the rest are unused.
 
 - **If `{SCRIPT}` is missing**, stop and inform the user. The script ships with Spec-Kit, so its absence means this is not an initialized Spec-Kit project and nothing else in this command can be relied on.
-- **If `{SCRIPT}` runs but exits non-zero** — commonly `Feature directory not found` on a clean `main` checkout with no `.specify/feature.json` — this is **not** fatal. Its feature directory is not used anyway (see step 2). Recover `REPO_ROOT` by resolving the first token of `$ARGUMENTS` against the **current working directory** and walking up to the nearest ancestor containing `.specify/`. Note the fallback in the Step 6 report. Stop only if no such ancestor exists.
+- **If `{SCRIPT}` does not yield a usable `REPO_ROOT`** — either it exits non-zero (commonly `Feature directory not found` on a clean `main` checkout with no `.specify/feature.json`), or it succeeds while reporting an empty or absent `FEATURE_DIR`, which is what `--paths-only` does on current spec-kit because that mode performs no prerequisite validation — this is **not** fatal, and both cases are handled identically: the feature directory is not used either way (see step 2). Recover `REPO_ROOT` by resolving the first token of `$ARGUMENTS` against the **current working directory** and walking up to the nearest ancestor containing `.specify/`. Note the fallback in the Step 6 report. Stop only if no such ancestor exists.
 
-**2. `FEATURE_DIR` — the argument always wins.** Resolve the first token of `$ARGUMENTS` **under `REPO_ROOT`**, not under the current working directory, even when step 1's fallback started from cwd — the walk-up has already established `REPO_ROOT` by then, and a run invoked from a subdirectory would otherwise reject a perfectly valid `specs/001-x`. Apply the **ambiguous first token** check from Input Parsing at this point: it must match exactly one existing directory, and a numeric prefix such as `specs/001` may expand only when the match is unique. That directory is `FEATURE_DIR`.
+`--paths-only` is also the mode that performs **no writes of its own**: on current spec-kit it does not persist `.specify/feature.json`. That is what makes the no-write promise above hold for a *rejected* run, since rule 4 is evaluated only after `{SCRIPT}` has already been invoked.
+
+**2. `FEATURE_DIR` — the argument always wins.** Resolve the first token of `$ARGUMENTS` **under `REPO_ROOT`**, not under the current working directory, even when step 1's fallback started from cwd — the walk-up has already established `REPO_ROOT` by then, and a run invoked from a subdirectory would otherwise reject a perfectly valid `specs/001-x`.
+
+A **feature directory** is a directory under `SPECS_DIR` that directly contains `spec.md`. It may sit directly under `specs/`, or one or more levels below a **scope directory** (`specs/billing/006-invoice-settings`). Its name is **not required to carry a three-digit prefix**: sequential (`007-invoice-settings`) and timestamped (`20260814-101500-invoice-settings`) forms are equally valid, and no step of this command may key on the prefix shape.
+
+Resolve the token by this ladder, stopping at the first match:
+
+  a. **As a path** under `REPO_ROOT`, when it names an existing directory. Take it as given — 0.2 does the validating. Do **not** require it to contain `spec.md` here: a directory holding `plan.md` but no `spec.md` must reach 0.2, which answers it with the actionable "Missing required files" message, rather than being turned away with a misleading resolution error.
+  b. Otherwise, **as a prefix of the final path segment** of exactly one feature directory sharing the token's parent path — so `specs/001` matches `specs/001-task-manager`, and `specs/billing/006` matches `specs/billing/006-invoice-settings`. This search is **non-recursive**: a prefix never reaches into a scope directory the token did not name, so `specs/006` does not find `specs/billing/006-invoice-settings`.
+
+If the ladder finds nothing, or branch (b) finds more than one, apply rule 4's error. If branch (a) resolves a directory that contains **no `spec.md` but does contain feature directories beneath it**, it is a scope directory, not a feature: output `ERROR: '[token]' is a scope directory, not a feature` — listing the feature directories it holds — and stop. Never expand a scope directory into the features under it; that would be the batch mode this command does not have.
+
+The resolved directory is `FEATURE_DIR`.
 
 Ignore whatever feature directory `{SCRIPT}` reports. The script resolves it from the project's own state (`SPECIFY_FEATURE_DIRECTORY`, then `.specify/feature.json`), which is whichever feature was last worked on, **not** the one being archived; archival runs after a merge, so the two routinely differ. When they differ, report both in Step 6 so a user who passed the wrong path can see it.
 
 **3. Remaining paths.**
+- `SPECS_DIR` (`REPO_ROOT / specs`)
 - `MEMORY_DIR` (`REPO_ROOT / .specify/memory`)
 - `TEMPLATES_DIR` (`REPO_ROOT / .specify/templates`)
 
-**Path convention**: Feature specs live in `specs/{###-feature-name}/` at repo root. Use absolute paths for all file operations.
+**4. `FEATURE_ID` — the feature's identity string.** `FEATURE_ID` is the path of `FEATURE_DIR` **relative to `REPO_ROOT`**, always including the `specs/` prefix: `specs/007-invoice-settings`, `specs/20260814-101500-export`, `specs/billing/006-invoice-settings`.
+
+Every place this command names the feature — source refs, revision notes, the changelog entry and its link, the agent file's Recent Changes bullet, idempotency checks, the Step 6 report — uses `FEATURE_ID`, **never the final path segment alone**. Nested layouts make basenames ambiguous: `specs/billing/006-invoices` and `specs/reporting/006-invoices` are different features that share a basename, and naming either by `006-invoices` would let one be mistaken for the other.
+
+**Path convention**: Feature specs live under `SPECS_DIR`, either directly (`specs/007-invoice-settings`) or below a scope directory (`specs/billing/006-invoice-settings`), and their names may be sequential or timestamped. Use absolute paths for all file operations.
 
 ### 0.2 Validate Feature Directory
 
@@ -147,7 +200,12 @@ Note which of these exist in `FEATURE_DIR` (for use in later steps):
 - `checklists/` — quality tracking
 - `quickstart.md` — integration scenarios
 
-A `bugs/` directory may also exist (bugfix extensions such as `spec-kit-bugfix` write `BUG-###.md` reports into it). Inventory the report files if present. Only the two bounded reads defined in Allowed Sources apply to them — header fields for the Step 1 audit, Root Cause Analysis for 5.3 — and requirement text is never taken from them. (Step 0.6, which runs later, records whether a bugfix extension is installed; Step 6 combines that with this inventory and the Step 1 audit.)
+Bug reports may also exist, in either of the **two layouts** Allowed Sources defines. Inventory both if present:
+
+- **feature-scoped** — `FEATURE_DIR/bugs/BUG-###.md`. Inventory the report files.
+- **repo-level** — `REPO_ROOT/.specify/bugs/<slug>/`. Only look here **when that directory exists**. Inventory the slugs, then determine which are **attributed** to this feature by the two channels in Allowed Sources. Bound this pass: read only each `assessment.md`'s header region (the lines before its first `##`) — never a whole file, and never `fix.md` or `test.md`, which this command does not read at all. Record both counts, total and attributed; unattributed reports take no further part in the run.
+
+Only the two bounded reads defined in Allowed Sources apply to either layout — header fields for the Step 1 audit, Root Cause Analysis for 5.3 — and requirement text is never taken from them. Both layouts may be present in the same run; every downstream step treats their reports as one combined set. (Step 0.6, which runs later, records whether a bugfix extension is installed; Step 6 combines that with this inventory and the Step 1 audit.)
 
 ### 0.4 Validate or Bootstrap Memory Directory
 
@@ -166,7 +224,7 @@ mkdir -p MEMORY_DIR
 
 When a scope modifier suppresses a bootstrap, skip it silently and record it under `## Scoping` in the Step 6 report, using this wording (substituting the artifact and feature):
 
-> `plan.md` was not seeded because it is out of scope for this run. To get **this** feature's plan content into it, re-run `/speckit.archive.run specs/###-feature-name` at full scope. A full-scope run for a *different* feature will create the file but fill it with that feature's content, not this one's.
+> `plan.md` was not seeded because it is out of scope for this run. To get **this** feature's plan content into it, re-run `/speckit.archive.run <FEATURE_ID>` at full scope — print the actual resolved path here, not a placeholder, so the message can be copied and run as-is. A full-scope run for a *different* feature will create the file but fill it with that feature's content, not this one's.
 
 **Memory artifacts are project-level documents.** They outlive every feature, so they must never open with one feature's metadata. When seeding, **drop the entire per-feature header block**: the title line (`# Feature Specification: ...` / `# Implementation Plan: ...`) and **every** metadata line before the first section heading, whatever it is called — `**Feature Branch**`, `**Created**`, `**Status**`, `**Branch**`, `**Date**`, `**Input**`, and any other bold metadata line are examples, not the complete set. Title the seeds `# Main Project Specification` and `# Main Implementation Plan`. When mirroring the feature's own files instead (no template), the same rule applies, and the feature spec's `## Clarifications` heading is also left out (see Allowed Sources). These rules govern **new seeds only**: a memory file written by an older version keeps whatever header or archived sections it has — do not rewrite it retroactively; the Edit Rules' "preserve existing layout" applies.
 
@@ -209,7 +267,7 @@ While extracting, note for each MUST rule — Core Principle, Architecture Stand
 ### 0.6 Check Extension Hooks (before archival)
 
 Check if `REPO_ROOT/.specify/extensions.yml` exists:
-- If it exists, also note (for Step 6) whether the top-level `installed` list names a bugfix extension — an entry whose id is, starts with, or ends with `bug` or `bugfix` — `bug`, `bugfix`, `spec-kit-bugfix` all count; an id merely containing `bug` elsewhere, like `debug-tools`, does not. When the file or its `installed` list is absent, or the file cannot be parsed, record "unknown" and move on. This is context only, never a gate: the `bugs/` handling keys on the files existing, not on the installer.
+- If it exists, also note (for Step 6) whether the top-level `installed` list names a bugfix extension — an entry whose id is, starts with, or ends with `bug` or `bugfix` — `bug`, `bugfix`, `spec-kit-bugfix` all count; an id merely containing `bug` elsewhere, like `debug-tools`, does not. The first-party extension's id is exactly `bug`, which the "is" branch already matches, so this rule needs no addition for it. When the file or its `installed` list is absent, or the file cannot be parsed, record "unknown" and move on. This is context only, never a gate: the `bugs/` handling keys on the files existing, not on the installer.
 - If it exists, read it and look for entries under `hooks.before_archive`
 - If the YAML cannot be parsed or is invalid, skip hook checking silently
 - Filter to only hooks where `enabled: true`
@@ -270,14 +328,14 @@ Read the feature specification and extract the following. These files, in `FEATU
 - Count completed tasks: lines matching `- [X]` or `- [x]` — except a task carrying a `(reopened — BUG-NNN)` note, which counts as incomplete even when its checkbox still shows `[x]`
 - Count total tasks: lines matching `- [ ]` or `- [X]` or `- [x]`
 
-**From `bugs/` (if it exists) — a bounded audit, never content:**
-- Per report file, the header fields only: bug ID and title (the report's first line), Type, Severity, and `**Status**`, whatever its value. Real reports vary: a field may be missing (record it as absent, never infer it), a status may say `Fixed` or anything else, and the root-cause section may not exist.
-- Per report file, the `## Root Cause Analysis` section (or none) — solely for the agent file's Known Issues merge in 5.3
-- **Classify each report**, and use this classification everywhere downstream: **addressed** — the report's ID appears in a `**Bugfix**:` annotation inside the feature artifacts (see below), so the patch demonstrably happened; **unverified** — everything else, *regardless of what its Status claims*. Field experience is that bugs get documented well but rarely marked patched or verified, so a status value is always a claim, never a corroboration.
+**From the bug reports 0.3 inventoried — a bounded audit, never content.** This covers **each attributed report in either layout**, feature-scoped and repo-level together, as one combined set:
+- Per report, the header fields only: the bug's identifier and title (the report's first line in the feature-scoped layout; `assessment.md`'s header region in the repo-level one, where a report stating no ID is identified by its directory slug), Type, Severity, and `**Status**`, whatever its value. Real reports vary: a field may be missing (record it as absent, never infer it), a status may say `Fixed` or anything else, and the root-cause section may not exist.
+- Per report, the `## Root Cause Analysis` section (or none) — solely for the agent file's Known Issues merge in 5.3. In the repo-level layout this may come from `assessment.md` or `fix.md`; **nothing else in `fix.md` is read**, and `test.md` is not read at all.
+- **Classify each report**, and use this classification everywhere downstream: **addressed** — the report's ID or slug appears in a `**Bugfix**:` annotation inside the feature artifacts (see below), so the patch demonstrably happened; **unverified** — everything else, *regardless of what its Status claims*. Field experience is that bugs get documented well but rarely marked patched or verified, so a status value is always a claim, never a corroboration. This is why a repo-level report attributed only by channel (b) — its own header naming this feature — is always **unverified**: being about this feature is not evidence that anything was patched.
 
 **Bugfix annotations inside the feature artifacts.** A bugfix extension's patch step amends the feature's own `spec.md`/`plan.md`/`tasks.md` and leaves markers. When extracting:
 - Text struck through with `~~...~~` counts as **superseded by a patch** only when a `**Bugfix**:` marker or a live replacement wording sits in or beside the same entry: then extract the replacement only, and never archive the struck text as current content. Struck text with neither marker nor replacement is not a patch artifact you can interpret — carry it as it stands and name it under `## Outstanding Items`; dropping it silently would violate the completeness rule.
-- `**Bugfix**: [DATE] — [BUG-NNN] ...` lines are patch metadata, not requirements: do not archive them as content; collect the bug IDs they name for the changelog entry (5.4).
+- `**Bugfix**: [DATE] — [BUG-NNN] ...` lines are patch metadata, not requirements: do not archive them as content; collect the bug identifiers they name for the changelog entry (5.4). An annotation may name a repo-level report by its **slug** rather than a `BUG-###` number; collect it exactly as written and never normalize a slug into an invented ID.
 - A task annotated `(reopened — BUG-NNN)` is an incomplete task; count it as such.
 
 ---
@@ -523,8 +581,10 @@ Before making any edits, produce a brief impact map:
 | `.specify/memory/spec.md` | FR-005 | Remove (superseded by feature FR-021) |
 | `.specify/memory/plan.md` | Dependencies, Project Structure | Append |
 | `.specify/memory/changelog.md` | Merged Features Log | New entry |
-| `GEMINI.md` | Recent Changes, Known Issues | Append |
+| `AGENTS.md` | Recent Changes, Known Issues | Append |
 ```
+
+Give each agent context file **its own row**: when Step 5.3 resolves several, the map must show every file that will be written, not one row standing for all of them.
 
 This gives the user a preview before edits are applied. Include every confirmed supersession target as a `Remove` row, and append the 2.5 verdict table below the map — the folds about to happen and the pairs judged separate are part of the preview.
 
@@ -538,15 +598,15 @@ This gives the user a preview before edits are applied. Include every confirmed 
 - **Consolidate, do not accumulate.** Merge each incoming item into the existing entry that already covers the same ground. Append a new entry only when no equivalent exists. The main spec is one consolidated specification, not a per-feature digest. **For the categories 2.5 keys** (stories, requirements, entities, edge cases, outcomes, assumptions), which items fold is decided by the 2.5 verdict table, not ad hoc while writing: fold the pairs it marks fold, keep its separate pairs separate, and never fold a pair it did not examine. The plan (5.2) and the agent file (5.3) are outside 2.5's scope and follow their own steps' merge rules.
 - **Only ever fold an incoming feature item into an existing entry.** Never merge two entries that both already exist in main memory. Accumulation came from appending incoming items, so this is enough to fix it, and it guarantees an existing main-memory ID can never disappear through consolidation.
 - **The surviving text of a merge must preserve every constraint** from all contributing entries. If one entry's wording would lose a condition, limit, or qualifier stated by the other, the two are **not** equivalent — keep them separate. A source ref must never point at an entry whose constraint was dropped.
-- Add an **item-level** `[Source: specs/###-feature-name/<file> -> ID]` traceability ref to each merged entry, where `<file>` is the feature artifact the content actually came from: `spec.md` for spec items (e.g. `[Source: specs/007-invoice/spec.md -> FR-012]`), `plan.md` for plan-derived entries, `data-model.md` for entities it defines. A ref must never name `spec.md` for content that came from another artifact — that would assert a provenance that is not true. An entry consolidated from several features carries one ref per contributing feature; an entry drawing on two artifacts of the same feature (say `spec.md` and `data-model.md`) may carry one ref per artifact. Never attach a duplicate ref to a source the entry already cites.
+- Add an **item-level** `[Source: <FEATURE_ID>/<file> -> ID]` traceability ref to each merged entry, where `<FEATURE_ID>` is the feature identity string from 0.1 step 4 — the `REPO_ROOT`-relative path, so a nested or timestamped feature is cited by its full path (`[Source: specs/billing/006-invoice-settings/spec.md -> FR-004]`) and never by its basename — and `<file>` is the feature artifact the content actually came from: `spec.md` for spec items (e.g. `[Source: specs/007-invoice/spec.md -> FR-012]`), `plan.md` for plan-derived entries, `data-model.md` for entities it defines. A ref must never name `spec.md` for content that came from another artifact — that would assert a provenance that is not true. An entry consolidated from several features carries one ref per contributing feature; an entry drawing on two artifacts of the same feature (say `spec.md` and `data-model.md`) may carry one ref per artifact. Never attach a duplicate ref to a source the entry already cites.
   - **How to read the arrow.** `file -> ID` means "this entry came **from** the item `ID`, which lives in that file". It points from a file to an item **inside** it. It never means "the source item became this ID": a source `User Story 1` folded into main memory's `User Story 6` is still cited as `-> User Story 1`, because the ref names where the content came from, not where it landed.
   - **When the source item carries no ID.** A feature spec may number its requirements but leave edge cases or stories unnumbered, so there is no ID to cite. Quote the item's own heading or opening phrase instead: `[Source: specs/002-billing/spec.md -> "Card declined mid-checkout"]`. **This ladder governs every ref this command writes, not only refs on spec items.** It does not add refs to entries that deliberately carry none, such as the changelog's Merged Features Log entry or the agent file's Recent Changes bullet. Plan content is almost never numbered, so it takes the quoted-phrase rung as a matter of course: a labelled Technical Context field cites its own label (`[Source: specs/002-billing/plan.md -> "Constraints"]`), and a routing or configuration bullet cites its opening phrase (`-> "GET /invoices"`). A bare section name such as `-> Edge Cases` is **not** acceptable — it names a section, not an item, so it identifies nothing. If no stable phrase exists either, use the file-level form `[Source: specs/002-billing/spec.md]` — safe here because for a **new** ref you know exactly which artifact the content came from. (Legacy-ref upgrades have no such knowledge, which is why their unidentifiable case keeps the directory-level ref instead.)
-- **Legacy refs**: entries written in the older directory-level form (`[Source: specs/###-feature-name]`) carry no item ID. When you touch such an entry, upgrade the ref using **the same ladder as above** — the originating item's ID, else its heading or opening phrase in quotes, citing the artifact where you found it (the Allowed Sources exception names which artifacts you may search). When the item cannot be identified in any searchable artifact, **keep the directory-level ref unchanged** and note it under `## Outstanding Items` in the Step 6 report — never upgrade it to a file-level form naming an artifact the item was not found in, because the provenance rule above applies to upgraded refs too. An identifiable but unnumbered item takes the middle rung. Do not modify legacy refs on entries this feature does not touch.
+- **Legacy refs**: entries written in the older directory-level form (`[Source: <FEATURE_ID>]` — a ref naming a feature directory with no artifact and no item after it) carry no item ID. Recognize this form by its **shape**, not by a three-digit prefix: `[Source: specs/003-reporting]`, `[Source: specs/20260814-101500-export]` and `[Source: specs/billing/006-invoice-settings]` are all legacy refs, and missing the latter two would silently freeze those entries at the coarsest rung forever. When you touch such an entry, upgrade the ref using **the same ladder as above** — the originating item's ID, else its heading or opening phrase in quotes, citing the artifact where you found it (the Allowed Sources exception names which artifacts you may search). When the item cannot be identified in any searchable artifact, **keep the directory-level ref unchanged** and note it under `## Outstanding Items` in the Step 6 report — never upgrade it to a file-level form naming an artifact the item was not found in, because the provenance rule above applies to upgraded refs too. An identifiable but unnumbered item takes the middle rung. Do not modify legacy refs on entries this feature does not touch.
 - Add a **Revision note** (date + reason) to `.specify/memory/spec.md` and `.specify/memory/plan.md` whenever this run modifies them. **Not to `changelog.md` or the agent file**: the changelog's Merged Features Log entry and the agent file's Recent Changes bullet already record each run by name, and a second record beside them says nothing new. Form and place are fixed: a blockquote **directly under the document title**, before the first section heading, `> **Revision**: YYYY-MM-DD — [what this run changed and why]`. Newest **last**, so the notes read in run order — the opposite of 5.4's Merged Features Log, which is newest first, because these read as a history and that reads as a feed. Never rewrite an earlier note. A run may write **more than one blockquote line** when it has several things to record: 5.2 requires a resolved scalar conflict's old value, its ref, and the replacement to appear here, and one line per resolved conflict is clearer than one long line carrying all of them.
 
   Placement is fixed rather than left to taste because later runs **read** these notes: 5.2's settled-conflict exception depends on finding one an earlier run wrote, and a note filed elsewhere is a note the next run will miss. **Where an artifact already carries revision notes in some other place or form** — an older version's `## Revision History` section, or comment lines at the end of a file — leave them exactly where they are (the preserve-existing-layout rule), start the fixed-place block anyway, and name the split under `## Outstanding Items` so a reader knows to look in both. Do not retrofit old notes into the new form.
 - Respect scoping hints — skip artifacts not in scope and explicitly note them. **Out of scope means not written, never not read**: artifacts outside the scope are still read when a rule requires it (for example collecting retired IDs or checking for a prior run in `changelog.md`). A rule that reads a missing artifact treats it as empty rather than stopping, so no rule below needs its own existence check.
-- **Idempotency is judged per artifact, not per run.** This feature has already been merged into an artifact if that artifact carries source refs naming it, **or an entry naming it** — the changelog's Merged Features Log entry, or the agent file's Recent Changes bullet, neither of which carries source refs. Check the artifact you are about to write, not `changelog.md` on its behalf, because scope modifiers mean a feature can be present in `spec.md` while no changelog entry exists. When it is already present, update in place: never append a second copy, and never attach a source ref an entry already cites.
+- **Idempotency is judged per artifact, not per run.** This feature has already been merged into an artifact if that artifact carries source refs naming it, **or an entry naming it** — the changelog's Merged Features Log entry, or the agent file's Recent Changes bullet, neither of which carries source refs. **"Naming it" means matching `FEATURE_ID`, the full `REPO_ROOT`-relative path, not the final segment**: `specs/billing/006-invoices` and `specs/reporting/006-invoices` are different features, and matching on `006-invoices` would let the second be mistaken for the first and skipped as already archived. **Each agent context file is its own artifact** for this purpose, so when a project keeps several in sync, a Recent Changes bullet present in one and absent in another is completed independently in each. Check the artifact you are about to write, not `changelog.md` on its behalf, because scope modifiers mean a feature can be present in `spec.md` while no changelog entry exists. When it is already present, update in place: never append a second copy, and never attach a source ref an entry already cites.
 - **Detect and follow the project's existing ID convention** (FR-XXX, REQ-XXX, Flow1, US-XX, etc.). Continue the sequence from the highest existing ID in main memory. Never reuse or renumber existing IDs. **When `.specify/memory/spec.md` is empty** there is no convention to detect and no highest ID: adopt the **feature spec's own** convention and carry its IDs across unchanged, so `FR-007` in the feature stays `FR-007` in main memory and its source ref matches. Do not renumber, and never inherit example IDs left behind by template placeholder text. Assumptions are the one exception: they take `AS-###` IDs assigned by 5.1 step 8 even on an empty spec, because feature specs usually leave them unnumbered and the main spec needs a stable key. Key this on the spec being empty, **not** on the run being a first archival: scope modifiers make runs possible where `plan.md` is being seeded while `spec.md` is already populated, and carrying the feature's IDs into a populated spec would duplicate existing ones.
   - **Retired IDs still win.** Carry the feature's IDs across unchanged **except** any that appear in the retired list (next rule). Renumber a colliding item above the highest ID in **both** the retired list and the feature's own carried IDs, per the next rule — renumbering above the retired list alone would land on an ID the feature already uses.
 - **Retired IDs are off-limits.** Before assigning any new ID, read `.specify/memory/changelog.md` and collect the ID immediately following each `RETIRED:` marker. **Collect only that ID** — the rest of the line names the live replacement and must be ignored. Continue numbering above the highest ID found in **either** the main spec or that retired list, so a retired ID is never reissued even when it was the highest-numbered entry.
@@ -596,11 +656,11 @@ For each supersession candidate **confirmed by the user in Step 3**:
    **5.1 step 9 closes these lines.** Completing a line you opened during this run is part of writing it, not a rewrite; the append-only rule in 5.4 governs lines from *previous* runs. No `<pending>` marker may survive the end of 5.1.
 
    If `changelog.md` has no entry for this feature yet, create it now using the 5.4 template, at the position 5.4 specifies (directly under the `## Merged Features Log` heading); 5.4 will then update that same entry rather than adding a second one.
-4. Scan for references to the retired ID in `.specify/memory/spec.md` itself (cross-references such as "as specified in FR-005" survive the deletion of their target), and in `plan.md`, `constitution.md`, and the agent knowledge file. Do not rewrite them — list any dangling references in the Step 6 report.
+4. Scan for references to the retired ID in `.specify/memory/spec.md` itself (cross-references such as "as specified in FR-005" survive the deletion of their target), and in `plan.md`, `constitution.md`, and **each discovered agent context file**. Do not rewrite them — list any dangling references in the Step 6 report.
 
    **Also look for prose that describes the retired behavior without naming its ID.** Removing `FR-004` does not remove a plan sentence saying "completed tasks are kept forever", and an ID scan will never find it.
 
-   **Bounded the same way 2.5 is**, because this is the same kind of semantic comparison against the same potentially large documents. Derive the retired entry's slug (2.5 step 1), then look **only** at the sections and labelled fields whose own slug shares its object noun, in `.specify/memory/spec.md`, `.specify/memory/plan.md`, and the agent knowledge file — not `constitution.md`, which states the rules rather than describing the implementation. Never sweep a whole document. **Report at most five passages per retired ID.** If you stop looking at five, say plainly that the scoped sections may hold more; if you finished the scoped look and found five or fewer, say that instead. The two readings look identical in the report unless you say which one happened, and "five" with no such statement reads as "five was all there was".
+   **Bounded the same way 2.5 is**, because this is the same kind of semantic comparison against the same potentially large documents. Derive the retired entry's slug (2.5 step 1), then look **only** at the sections and labelled fields whose own slug shares its object noun, in `.specify/memory/spec.md`, `.specify/memory/plan.md`, and **each discovered agent context file** — not `constitution.md`, which states the rules rather than describing the implementation. Never sweep a whole document. **Report at most five passages per retired ID**, counted **across every file examined, not per file** — otherwise a project keeping several context files in sync multiplies the report budget by the number of files. Name which files the look covered. If you stop looking at five, say plainly that the scoped sections may hold more; if you finished the scoped look and found five or fewer, say that instead. The two readings look identical in the report unless you say which one happened, and "five" with no such statement reads as "five was all there was".
 
    **Report only — never rewrite one**, and say so plainly: this rule produces a pointer for the user, not an edit, because judging that a passage is about the retired behavior is prose judgment that can be wrong. That constrains **this** scan's output and nothing else — where another step edits a passage on its own authority (5.2's scalar conflict branch, or its "reflects the implemented state" rule), that step still governs. Report findings under `## Superseded Requirements`, beside the dangling-reference list. When the bounded look turns up nothing, say **that**, naming what you examined, rather than reporting a bare "none" — an unbounded silence is indistinguishable from not having looked, which is the failure 2.5 exists to prevent.
 
@@ -633,10 +693,21 @@ Four rules keep it narrow:
 6. **Remove from "Future Work"** anything that was just implemented.
 7. Ensure plan reflects the *implemented* state.
 
-### 5.3 Update Agent Knowledge File (GEMINI.md / AGENTS.md / CLAUDE.md)
+### 5.3 Update Agent Context File(s)
 
-1. Find the project's agent knowledge file (check, in order: `GEMINI.md`, `AGENTS.md`, `CLAUDE.md` in REPO_ROOT).
-2. If found, update the sections below, creating any that are missing. The section set is defined **here**, not by a template: recent spec-kit versions ship no agent-file template (an older project may still carry one in `.specify/templates/`, in which case follow its layout for these sections). If the file contains a tool-managed marker block (such as `<!-- SPECKIT ... -->` markers), **never write inside the markers** — the CLI overwrites that region; place these sections outside it.
+1. **Find the project's agent context file(s).** Current spec-kit does not manage these files itself: the opt-in `agent-context` extension owns them, and it records which files it manages. Resolve the targets in this order:
+
+   a. **Config first.** If `REPO_ROOT/.specify/extensions/agent-context/agent-context-config.yml` exists and parses, take the targets from it: use `context_files` when it is present and non-empty, otherwise `context_file`. Entries are **project-relative** and resolve under `REPO_ROOT`. When several are named, **all of them are targets** — write the same section set into each, because a project lists several precisely to keep them in sync.
+   b. **Fallback.** If that file is absent, cannot be parsed, or names nothing, probe for the first of `GEMINI.md`, `AGENTS.md`, `CLAUDE.md` in `REPO_ROOT`. (Falling back silently on a parse failure matches how 0.6 treats an unparseable `extensions.yml`.)
+
+   **Never create an agent context file.** The `agent-context` extension owns their existence; this command only updates one that is already there. A configured path that does not exist is **skipped and named in the report**, exactly as step 3 already handles finding none at all.
+
+   Report which branch resolved the targets and how many files they came to, so the discovery is auditable rather than a silent guess.
+2. For each resolved file, update the sections below, creating any that are missing. The section set is defined **here**, not by a template: recent spec-kit versions ship no agent-file template (an older project may still carry one in `.specify/templates/`, in which case follow its layout for these sections).
+
+   **Never write inside a tool-managed marker block** — that region belongs to `agent-context`, which overwrites it, so anything placed there is lost. Identify the managed region two ways, and respect both: when the config is available, `context_markers.start` and `context_markers.end` define it (defaulting to `<!-- SPECKIT START -->` and `<!-- SPECKIT END -->` when the field is missing, though a project may configure any wording); and **in every case**, treat any pair of HTML comments reading as a managed region's start and end — `<!-- … START -->` and `<!-- … END -->`, whatever text sits between the delimiters — as such a block. The second rule is deliberately shape-based so that per-extension blocks like `<!-- SPECKIT EXT:archive START -->` are respected without this command having to predict their exact wording. Place these sections **outside** every such block.
+
+   If a file has **no region outside its marker blocks** — `agent-context` may own a file entirely — write nothing to it and name it in the report, the same disposition step 3 gives to finding no file at all.
 
    **"Active Technologies"** — add any new languages/frameworks/versions from the feature plan.
 
@@ -644,12 +715,12 @@ Four rules keep it narrow:
 
    **"Commands"** — add new build/run commands if the tech stack changed.
 
-   **"Recent Changes"** — prepend a new entry:
+   **"Recent Changes"** — prepend a new entry, naming the feature by `FEATURE_ID` (the `REPO_ROOT`-relative path from 0.1 step 4), since this bullet carries no source ref and the name is the only thing the idempotency check can match on:
    ```markdown
-   - ###-feature-name: [Brief description of what was added]
+   - specs/007-invoice-settings: [Brief description of what was added]
    ```
 
-   **"Known Issues & Gotchas"** — if `research.md` exists in the feature, extract any gotchas/issues; if `bugs/` reports carry a `## Root Cause Analysis` (the one content read Allowed Sources permits from them), turn each into an entry titled with the bug ID and short title. Merge both kinds using the standard format:
+   **"Known Issues & Gotchas"** — if `research.md` exists in the feature, extract any gotchas/issues; if any attributed bug report, in **either layout**, carries a `## Root Cause Analysis` (the one content read Allowed Sources permits from them), turn each into an entry titled with the bug's identifier — its `BUG-###` ID, or its directory slug when a repo-level report states none — and short title. Merge both kinds using the standard format:
    ```markdown
    ### ⚠️ [Issue Title]
    **Issue:** [What went wrong]
@@ -658,7 +729,7 @@ Four rules keep it narrow:
    ```
    Deduplicate against existing entries.
 
-3. If no agent file exists, skip this step and note it in the report.
+3. If no agent context file is resolved at all, skip this step and note it in the report. The same applies per file to any target that was configured but does not exist, and to any file with no writable region outside its marker blocks: skip that file, name it, and carry on with the rest — one unusable target never stops the step.
 
 ### 5.4 Archive to Changelog
 
@@ -666,14 +737,14 @@ Create or update `.specify/memory/changelog.md`. **One entry per feature**: if t
 
 **Newest first.** The Merged Features Log is reverse-chronological: insert a new feature entry **directly under the `## Merged Features Log` heading**, above all earlier entries. Updating an existing entry keeps it where it is, and entries inherited from older versions are never reordered. When you update an entry an older version wrote, bring **that entry's own** header and `**Spec:**` line to the current format (the `archived` label and the file link) — the same touch-to-upgrade principle as legacy refs; entries this run does not touch keep whatever format they have. The `## Unresolved Contradictions` section stays at the end of the file regardless.
 
-The entry's date is the **archival date**, which is why the header says `archived` — a feature is often archived well after its branch merged, and pretending otherwise would misdate the log. The `**Spec:**` line is a relative Markdown link from `.specify/memory/` to the feature's spec file; a file-level link has no heading anchor that can rot.
+The entry's date is the **archival date**, which is why the header says `archived` — a feature is often archived well after its branch merged, and pretending otherwise would misdate the log. The `**Spec:**` line is a relative Markdown link from `.specify/memory/` to the feature's spec file; a file-level link has no heading anchor that can rot. Build it from `FEATURE_ID`: the link text is `<FEATURE_ID>/spec.md` and the target is `../../` + the same, which stays correct at any nesting depth (`../../specs/billing/006-invoice-settings/spec.md`).
 
 ```markdown
 ## Merged Features Log
 
 ### [FEATURE NAME] — archived YYYY-MM-DD
 **Branch:** [branch-name from plan.md]
-**Spec:** [specs/###-feature-name/spec.md](../../specs/###-feature-name/spec.md)
+**Spec:** [specs/007-invoice-settings/spec.md](../../specs/007-invoice-settings/spec.md)
 
 **What was added:**
 - [Summary of user stories/scenarios implemented]
@@ -686,7 +757,7 @@ The entry's date is the **archival date**, which is why the header says `archive
 - RETIRED: FR-008 (from specs/004-export/spec.md) → no replacement. Reason: [one line]
 
 **Tasks Completed:** [completed]/[total] tasks
-**Bugs addressed:** [the bug IDs collected from `**Bugfix**:` annotations in the feature artifacts, e.g. BUG-001, BUG-003 — the annotation *is* the corroboration, so this line works even when the `bugs/` directory is absent; these include every report the Step 1 audit classifies **addressed** (an annotation may also name a bug that has no report file). Never list an ID on the strength of a report's Status claim alone. Omit this line when none]
+**Bugs addressed:** [the bug identifiers collected from `**Bugfix**:` annotations in the feature artifacts, e.g. BUG-001, BUG-003, login-timeout — the annotation *is* the corroboration, so this line works even when no bug reports exist in either layout; these include every report the Step 1 audit classifies **addressed** (an annotation may also name a bug that has no report file). Identifiers appear exactly as the annotation writes them, so a repo-level report's slug sits here beside `BUG-###` IDs and is never normalized into an invented number. Never list an identifier on the strength of a report's Status claim alone, and never on the strength of channel-(b) attribution alone. Omit this line when none]
 ```
 
 Count tasks using the checkbox format: `- [X]` or `- [x]` = completed; `- [ ]` = incomplete; a task with a `(reopened — BUG-NNN)` note = incomplete regardless of its checkbox (same rule as Step 1). If `tasks.md` does not exist, omit the "Tasks Completed" line.
@@ -733,13 +804,15 @@ Output the following structured report. Use **absolute paths** for all file refe
 | `/absolute/path/to/spec.md` | Added [IDs], [N] user stories, [N] entities |
 | `/absolute/path/to/plan.md` | Updated dependencies, project structure |
 | `/absolute/path/to/changelog.md` | New entry for [feature name] |
-| `/absolute/path/to/GEMINI.md` | Recent Changes, Known Issues |
+| `/absolute/path/to/AGENTS.md` | Recent Changes, Known Issues |
+
+[One row per agent context file written. Also name here, with the reason, any resolved target that was **skipped**: configured but missing, or holding no region outside its marker blocks.]
 
 ## Sources
-[Confirm every change came only from the Allowed Sources. Name anything you needed but could not find, and state that you did not reconstruct it. If you consulted git or any other tool to verify your own writes rather than to obtain content, say so here. When the `bugs/` bounded reads happened, declare both: the header-field audit and any Root Cause Analysis taken for Known Issues. When another feature's artifacts were opened under the ref-identification exception (a Legacy refs upgrade, or a 5.2 scalar seeding), name the files and confirm nothing but ref text was taken from them.]
+[Confirm every change came only from the Allowed Sources. Name anything you needed but could not find, and state that you did not reconstruct it. If you consulted git or any other tool to verify your own writes rather than to obtain content, say so here. When the bug-report bounded reads happened, declare both: the header-field audit and any Root Cause Analysis taken for Known Issues. Name which layouts were read, and when `.specify/bugs/` was consulted, confirm that no `test.md` was read and that nothing beyond a Root Cause Analysis was taken from any `fix.md`. When another feature's artifacts were opened under the ref-identification exception (a Legacy refs upgrade, or a 5.2 scalar seeding), name the files and confirm nothing but ref text was taken from them.]
 
 ## Path Resolution
-[`FEATURE_DIR` and how it was resolved. Note it when `{SCRIPT}` reported a different feature directory, or when the script failed and `REPO_ROOT` was derived by walking up from the argument. Otherwise "Resolved from argument".]
+[`FEATURE_DIR` and how it was resolved — by path, or by unique prefix expansion. Note it when `{SCRIPT}` reported a different feature directory, or when the script did not yield a usable `REPO_ROOT` and it was derived by walking up from the argument. Otherwise "Resolved from argument". Also state how the agent context file(s) were discovered — from the `agent-context` config, or by the fallback probe — and how many targets that came to.]
 
 ## Feature Status
 [List spec/plan files whose status was updated from Draft to Completed, or "No status fields found"]
@@ -763,12 +836,12 @@ Output the following structured report. Use **absolute paths** for all file refe
 [Confirmed removals as `OLD-ID (retired) → replaced by NEW-ID` or `OLD-ID (retired, no replacement)`. Also list:
 - candidates left unresolved, and the contradiction each leaves in the spec (these are also written to changelog.md and re-raised next run)
 - **deferred and unrecorded** — candidates deferred because the supersession gate was closed *and* the contradiction could not be written to changelog.md. Name the scope responsible and state plainly that these will **not** be raised again automatically; recommend a re-run at full scope
-- dangling references to retired IDs found in spec.md, plan.md, constitution.md, or the agent file
+- dangling references to retired IDs found in spec.md, plan.md, constitution.md, or any discovered agent context file
 - passages that restate a retired entry's behavior without naming its ID (5.1.1 step 4's bounded look): quote each, name the retired ID it echoes, recommend review, and state what was examined when nothing turned up
 Or "None"]
 
 ## Outstanding Items
-[Any remaining `NEEDS CLARIFICATION` markers. Also name any user story carried across with no Acceptance Scenarios, per 5.1 step 2 — the story is archived, but nothing states how to verify it. Any story fold where the incoming priority differed from the existing entry's (the existing priority was kept). Any legacy directory-level ref left unchanged because its item could not be identified. Any 2.5 candidate pairs dropped by the per-section shortlist cap (named individually, with a re-run recommendation). Any struck-through text carried as-is because it had neither a Bugfix marker nor a replacement. Name any item withheld because a 2.1 conflict went unresolved, with the rule it conflicts with and the recommendation to resolve it and re-archive this feature; name any 2.5 fold that did not happen because its incoming item was withheld, and any `RETIRED:` line closed as `replacement withheld`. Name each **action-requiring** constitution rule 2.1 could not verify, with what would settle it — these are unverified, not violated. When `plan.md` has a mixed layout, name it here and name every Technical Context field seeded from legacy per-feature blocks (5.2), marking each legacy line as a duplicate or as a superseded statement per 5.2, and recommend pruning it by hand. If `FEATURE_DIR` contains a `bugs/` directory, list each report with its Step 1 classification (**addressed** / **unverified**) and its claimed Status, and state plainly: every **unverified** report may not be reflected in the archived spec — *regardless of what its Status claims* — and no requirement text was taken from the reports (see Allowed Sources). When Step 0.6 found a bugfix extension installed and unverified reports exist, recommend running its patch and verify steps before re-archiving; when reports exist but no bugfix extension is installed, note they may be stale; when the installed state is "unknown", say so and make neither recommendation. Or "None"]
+[Any remaining `NEEDS CLARIFICATION` markers. Also name any user story carried across with no Acceptance Scenarios, per 5.1 step 2 — the story is archived, but nothing states how to verify it. Any story fold where the incoming priority differed from the existing entry's (the existing priority was kept). Any legacy directory-level ref left unchanged because its item could not be identified. Any 2.5 candidate pairs dropped by the per-section shortlist cap (named individually, with a re-run recommendation). Any struck-through text carried as-is because it had neither a Bugfix marker nor a replacement. Name any item withheld because a 2.1 conflict went unresolved, with the rule it conflicts with and the recommendation to resolve it and re-archive this feature; name any 2.5 fold that did not happen because its incoming item was withheld, and any `RETIRED:` line closed as `replacement withheld`. Name each **action-requiring** constitution rule 2.1 could not verify, with what would settle it — these are unverified, not violated. When `plan.md` has a mixed layout, name it here and name every Technical Context field seeded from legacy per-feature blocks (5.2), marking each legacy line as a duplicate or as a superseded statement per 5.2, and recommend pruning it by hand. If any attributed bug report exists in either layout, list each with its Step 1 classification (**addressed** / **unverified**) and its claimed Status, naming which layout it came from, and state plainly: every **unverified** report may not be reflected in the archived spec — *regardless of what its Status claims* — and no requirement text was taken from the reports (see Allowed Sources). When `.specify/bugs/` exists, also state how many repo-level reports it holds and how many were attributed to this feature, so reports left out are visible rather than silently absent; do not name or describe the unattributed ones beyond the count. When Step 0.6 found a bugfix extension installed and unverified reports exist, recommend running that extension's own fix and verification steps before re-archiving; when reports exist but no bugfix extension is installed, note they may be stale; when the installed state is "unknown", say so and make neither recommendation. Or "None"]
 
 ## Defaults Applied
 [Any decisions made with reasonable defaults instead of asking, or "None"]
@@ -800,7 +873,7 @@ Provide actionable next steps:
 1. **Manual Review Items:** Anything flagged during conflict detection or constitution compliance check.
    - If any supersessions were reported as **deferred and unrecorded**, recommend re-running `/speckit.archive.run` at full scope (no modifiers) so they can be raised, decided, and recorded.
 2. **Cleanup Suggestions:**
-   - Can the feature spec folder be archived? (e.g., `mv specs/###-feature-name .specify/archive/`)
+   - Can the feature spec folder be archived? (e.g., `mv <FEATURE_ID> .specify/archive/`, naming the actual resolved path)
    - Are there orphaned files to remove?
 3. **Verification:**
    - Run `make test` (or the project's equivalent) to verify nothing broke.
@@ -813,7 +886,7 @@ Provide actionable next steps:
 
 ## Done Criteria
 
-- All content taken only from the Allowed Sources. Nothing reconstructed from git history, deleted files, notes, or an agent memory store. No requirement text merged from `bugs/` (only the bounded header audit and Root Cause intake) nor from the `## Clarifications` log; every bug report listed with its audited status when a `bugs/` directory exists; struck-through patched text never archived as live.
+- All content taken only from the Allowed Sources. Nothing reconstructed from git history, deleted files, notes, or an agent memory store. No requirement text merged from bug reports in either layout (only the bounded header audit and Root Cause intake) nor from the `## Clarifications` log; every **attributed** bug report listed with its audited status when reports exist; no `test.md` read and nothing but a Root Cause Analysis taken from any `fix.md`; struck-through patched text never archived as live.
 - Every archived story carries its entire block — all labelled fields, not an enumerated subset.
 - Guidance text, when provided, applied within its limits: echoed verbatim in the report with any refused part named; scope, sources, steps, IDs, and removals unaffected by it.
 - Folding matches the 2.5 verdict table exactly, and the report's Consolidation section carries the examined/folded counts when 2.5 ran (a skipped 2.5 reports its skip reason instead).
