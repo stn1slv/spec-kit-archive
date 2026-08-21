@@ -1,15 +1,22 @@
-# Fix report: thumbnail-orientation
+# Bug Fix: Portrait images render sideways in previews
 
-**Status**: Fixed
-**Applied**: 2026-08-19
+- **Slug**: thumbnail-orientation
+- **Fixed**: 2026-08-19
+- **Assessment**: ./assessment.md
+- **Status**: applied
 
-## What changed
+## Summary
 
 The thumbnail pipeline now applies the EXIF orientation tag before resizing.
 
-The system MUST normalize EXIF orientation before generating a thumbnail, and
-MUST strip the orientation tag from the generated thumbnail.
+The system MUST normalize EXIF orientation before generating a thumbnail.
 
-## Files touched
+## Changes
 
-- `src/services/attachment_service.py`
+| File | Change | Notes |
+|------|--------|-------|
+| `src/services/attachment_service.py` | modified | orientation applied before resize |
+
+## Tests Added or Updated
+
+- `tests/test_attachments.py::test_portrait_thumbnail` — pins upright output

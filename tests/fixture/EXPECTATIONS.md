@@ -209,11 +209,14 @@ The two new features are added **inside `project/`** rather than as an overlay, 
 | T36 | A configured target does not exist on disk (`QWEN.md`) | `agent-context-state/` | Skip-and-report, never create |
 | T37 | A configured target sits at a nested path | `docs/agent/CLAUDE.md` | Entries are project-relative, not root-only |
 | T38 | Markers are `<!-- TEAM CONTEXT ... -->`, not the SPECKIT default | `agent-context-state/` | Whether the config's marker values are honoured, or a hardcoded default is assumed |
-| T39 | A repo-level report is attributed only by its own `**Feature**:` header, and claims `Status: Fixed` | `attachment-quota-drift` | Channel (b) can add an **unverified** entry but must never reach `**Bugs addressed:**` |
-| T40 | A repo-level report is attributed by neither channel | `report-timezone` | Must not be read, classified, or listed — only counted |
-| T41 | `fix.md` and `test.md` carry requirement-shaped `MUST` sentences | `bug-extension-state/` | The bounded read: these files are never read beyond a Root Cause Analysis |
+| T39 | An attributed report's `fix.md` says `**Status**: not-applied`, contradicting the annotation that attributed it | `attachment-quota-drift` | The annotation wins (**addressed**), and the discrepancy must be named, not silently resolved either way |
+| T40 | No annotation names `report-timezone` | `report-timezone` | Must never be opened, classified, or listed — only counted. Its root-cause hypothesis appearing in Known Issues proves it was opened |
+| T41 | `fix.md` and `test.md` carry requirement-shaped `MUST` sentences | `bug-extension-state/` | The bounded read: `fix.md` is read only for `**Status**`, `test.md` never opened |
 | T42 | A `**Bugfix**:` annotation names a **slug**, not a `BUG-###` ID | 004's patched FR-004 | The slug must be carried verbatim, never normalised into an invented number |
 | T43 | `extensions.yml` `installed` uses the bare id `bug` | `bug-extension-state/` | 0.6's "is" branch, which no earlier round has run |
+| T44 | Reports use the **real** `bug` templates: `## Root Cause Hypothesis`, `**Slug**`/`**Verdict**`/`**Severity**`, no `Type`, no `Status` in `assessment.md` | `bug-extension-state/` | Whether the command reads the headings the tool actually writes, rather than a plausible-sounding variant |
+| T45 | The base fixture's agent file carries **legacy** basename bullets (`- 001-task-manager:`) | `project/AGENTS.md:23`, `archived-state/AGENTS.md:26-27` | Re-archiving must update that bullet **in place** and upgrade it to the `FEATURE_ID` form, never append a second bullet |
+| T46 | `{SCRIPT}` returns a good `REPO_ROOT` with an empty `FEATURE_DIR` | any clean run | The normal `--paths-only` case. Must **not** be reported as a fallback; the walk-up is only for a missing `REPO_ROOT` |
 
 ### Case Q1 — timestamped feature, full scope, clean `project/`
 
@@ -286,14 +289,27 @@ Same overlay; `/speckit.archive.run specs/001-task-manager --agent-only`
 
 Overlay `bug-extension-state/` over a clean `project/`; `/speckit.archive.run specs/004-attachments`
 
-- The audit covers **five** reports as one set: 004's own `BUG-001` and `BUG-002` (feature-scoped) plus `thumbnail-orientation` and `attachment-quota-drift` (repo-level, attributed). `report-timezone` is **not** among them.
+- The audit covers **four** reports as one set: 004's own `BUG-001` and `BUG-002` (feature-scoped) plus `thumbnail-orientation` and `attachment-quota-drift` (repo-level, both attributed by annotation). `report-timezone` is **not** among them and is never opened.
 - **T42**: `thumbnail-orientation` classifies **addressed** — the FR-004 annotation names it — and its slug appears verbatim in `**Bugs addressed:**`, beside `BUG-001`. A synthesised `BUG-003` is a miss.
-- **T39**: `attachment-quota-drift` classifies **unverified** despite `Status: Fixed`, and does **not** appear in `**Bugs addressed:**`. It may appear under Known Issues and in the Step 6 status listing.
-- **T40**: `report-timezone` is neither listed nor described. The report states that `.specify/bugs/` holds three reports and that two were attributed, so its exclusion is visible as a count.
-- **T41**: none of these phrases appears anywhere under `.specify/memory/` or in any agent context file's requirement content — `normalize EXIF orientation`, `reject any image whose orientation tag cannot be parsed`, `enforce the per-team storage quota at commit time`. Grep for them; a hit is an outright failure of the bounded read.
-- Root-cause analyses from both attributed reports reach the agent file's Known Issues, titled by slug.
+- **T39**: `attachment-quota-drift` is **addressed** too, because the FR-005 annotation names it, and its slug also appears in `**Bugs addressed:**`. Its `fix.md` says `**Status**: not-applied`, which contradicts that annotation: the run must **name the discrepancy** under `## Outstanding Items`. Silently trusting either side is the miss.
+- **T44**: header fields come from the real template — `**Slug**`, `**Verdict**`, `**Severity**` — and `Type`/`Status` are recorded **absent** for `assessment.md` rather than invented or hunted for elsewhere. `**Status**` is taken only from `fix.md`'s header region.
+- **T40**: `report-timezone` is neither listed nor described, and **its `## Root Cause Hypothesis` must not appear in Known Issues** — an entry about weekly report timezones proves the file was opened. The report states that `.specify/bugs/` holds three slugs and that two were attributed, so its exclusion is visible as a count.
+- **T41**: none of these phrases appears anywhere under `.specify/memory/` or in any agent context file — `normalize EXIF orientation`, `reject any image whose orientation tag cannot be parsed`, `enforce the per-team storage quota at commit time`. Grep for them; a hit is an outright failure of the bounded read.
+- Root-cause **hypotheses** from both attributed reports reach the agent file's Known Issues, titled by slug. The heading read is `## Root Cause Hypothesis`, not `## Root Cause Analysis`, which no repo-level report carries.
 - **T43**: 0.6 reports a bugfix extension installed, matching the bare id `bug`.
-- FR-004's `**Bugfix**:` annotation is metadata: the requirement archives, the annotation does not.
+- The `**Bugfix**:` annotations are metadata: FR-004 and FR-005 archive, the annotations do not.
+
+### Case L6 — legacy Recent Changes bullet, in place
+
+Overlay `archived-state/` over a clean `project/`; `/speckit.archive.run specs/001-task-manager`
+
+`archived-state/AGENTS.md:26-27` holds `- 002-notifications:` and `- 001-task-manager:` in the **legacy basename form** that every version before 1.3.0 wrote.
+
+- **T45**: 001's bullet is recognised as already present and updated **in place**, then rewritten to `- specs/001-task-manager:`. A **second** bullet is an outright failure — it is the regression the `FEATURE_ID`-strict rule introduced, and this case exists solely to catch it.
+- 002's bullet is not this run's feature: it is left exactly as it is, still in the legacy form. Only a touched entry is upgraded.
+- The changelog entry and source refs, which always carried the `specs/` path, behave as before.
+
+This case also covers Case G2's documented expectation (`EXPECTATIONS.md`: "an **in-place** completion (no duplicate Recent Changes bullet)") against the new rule.
 
 ### Case Ctl — control, mandatory
 
@@ -301,7 +317,9 @@ Re-run **Case K** exactly as round 5 ran it: `/speckit.archive.run specs/004-att
 
 Compare against `BASELINE-v1.2.2.md`'s Case K result. The v1.3.0 edits to Allowed Sources, the Edit Rules, 5.3, 5.4 and the Step 6 template must not have perturbed it:
 
-- The agent file resolves by the **fallback** probe (a clean `project/` has no `agent-context` config), finding `AGENTS.md` — `GEMINI.md` does not exist there.
+- The agent file resolves by the **fallback** probe (a clean `project/` has no `agent-context` config), finding `AGENTS.md` — `GEMINI.md` does not exist there. The report must say the fallback branch was taken, and name its known limit.
+- **T46**: `{SCRIPT}` returns a good `REPO_ROOT` with an empty `FEATURE_DIR`, which is the normal `--paths-only` result. `## Path Resolution` must read "Resolved from argument", **not** report a walk-up fallback. Reporting a fallback here means the run keyed the fallback on `FEATURE_DIR` instead of `REPO_ROOT`.
+- 001's legacy basename bullet in `project/AGENTS.md:23` is a different feature from the one being archived (004), so it stays untouched.
 - Only 004's feature-scoped `bugs/` is audited; a clean `project/` has no `.specify/bugs/`, so no repo-level pass happens and the report says nothing about attribution counts.
 - Refs, IDs and the changelog entry match the v1.2.2 result.
 

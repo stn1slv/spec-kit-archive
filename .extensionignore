@@ -11,5 +11,9 @@ tests/
 # Local agent and editor settings
 .claude/
 
+# Git metadata. Installation is a plain copytree with no built-in .git exclusion,
+# so a `--dev` install from a checkout would otherwise copy the whole history.
+.git/
+
 # Repository plumbing that means nothing outside this repo
 .gitattributes

@@ -33,6 +33,7 @@ A task owner attaches a file to a task, and every team member can open it from t
 - **FR-002**: ~~Attachments MUST be stored on the local disk of the web server.~~ Attachments MUST be stored in the shared object store so that every application instance can serve them. **Bugfix**: 2026-08-09 — [BUG-001] Local-disk storage broke multi-instance deployments.
 - **FR-003**: Every attachment MUST be scanned before it becomes downloadable.
 - **FR-004**: Thumbnails MUST be generated for image attachments and shown in the attachment list. **Bugfix**: 2026-08-19 — [thumbnail-orientation] Portrait previews rendered sideways; thumbnail generation now honours image orientation.
+- **FR-005**: The per-team storage quota MUST be enforced on every path that writes attachment bytes, including replacement. **Bugfix**: 2026-08-19 — [attachment-quota-drift] Replacement bypassed the quota check.
 
 ### Key Entities
 

@@ -1,16 +1,27 @@
-# thumbnail-orientation: Portrait images render sideways in previews
+# Bug Assessment: Portrait images render sideways in previews
 
-**Type**: Implementation drift
-**Severity**: Medium
-**Status**: Assessed
-**Reported**: 2026-08-18
+- **Slug**: thumbnail-orientation
+- **Created**: 2026-08-18
+- **Source**: pasted text
+- **Verdict**: valid
+- **Severity**: medium
 
-## Report
+## Report (verbatim or summarized)
 
 Photographs taken in portrait orientation are shown rotated 90 degrees in the attachment preview. The stored original is correct; only the generated thumbnail is wrong.
 
-## Root Cause Analysis
+## Symptom
 
-**Issue:** Thumbnails of portrait photographs are displayed sideways.
-**Root Cause:** The thumbnail generator reads raw pixel data and ignores the EXIF orientation tag, which the originating cameras rely on rather than physically rotating the image.
-**Prevention Rule:** Any image transformation must apply the EXIF orientation tag before resizing, and strip the tag afterwards so downstream viewers do not rotate a second time.
+Portrait photographs preview sideways while the downloaded original is upright.
+
+## Suspected Code Paths
+
+- `src/services/attachment_service.py:210` — thumbnail generation reads raw pixel data
+
+## Root Cause Hypothesis
+
+The thumbnail generator ignores the EXIF orientation tag, which the originating cameras rely on rather than physically rotating the image. Confidence: high.
+
+## Proposed Remediation
+
+**Preferred**: apply the EXIF orientation tag before resizing, then strip the tag so downstream viewers do not rotate a second time.

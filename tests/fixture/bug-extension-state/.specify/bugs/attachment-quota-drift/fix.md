@@ -1,15 +1,19 @@
-# Fix report: attachment-quota-drift
+# Bug Fix: Per-team attachment quota is not enforced on replace
 
-**Status**: Fixed
-**Applied**: 2026-08-19
+- **Slug**: attachment-quota-drift
+- **Fixed**: 2026-08-19
+- **Assessment**: ./assessment.md
+- **Status**: not-applied
 
-## What changed
+## Summary
 
-The quota check moved to the storage-commit step.
+Deferred: moving the quota check to the storage-commit step touches the shared
+upload path and was held for a follow-up.
 
-The system MUST enforce the per-team storage quota at commit time on every path
-that writes attachment bytes, including replacement.
+The system MUST enforce the per-team storage quota at commit time on every path.
 
-## Files touched
+## Changes
 
-- `src/services/attachment_service.py`
+| File | Change | Notes |
+|------|--------|-------|
+| (none) | — | no code changed in this pass |
