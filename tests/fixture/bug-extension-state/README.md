@@ -26,6 +26,8 @@ Beyond the header regions and `## Root Cause Hypothesis`, nothing is read. `fix.
 - `thumbnail-orientation/test.md` — "reject any image whose orientation tag cannot be parsed"
 - `attachment-quota-drift/fix.md` — "enforce the per-team storage quota at commit time"
 
+The sharper canaries sit in `assessment.md`, the one file the command legitimately opens: `canonical imaging pipeline` and `sole gatekeeper` both live in `## Proposed Remediation`, which is off-limits even there. Only the header region and `## Root Cause Hypothesis` may be read. Since 5.3's Known Issues template asks for a "Prevention Rule", a run is actively tempted to lift one from Proposed Remediation, and these phrases catch exactly that.
+
 None of those phrases may appear anywhere in `.specify/memory/` after the run. The root-cause hypotheses **may** appear, but only under the agent context file's Known Issues, titled by slug.
 
 `report-timezone` must not be opened at all, so its root-cause hypothesis must not appear either — a Known Issues entry mentioning report timezones is proof the attribution rule was skipped.

@@ -22,7 +22,7 @@ Per-team invoice configuration: number prefix, starting number, and billing addr
 
 ## Constitution Check
 
-Invoice settings include a billing address, which is user data; its retention follows the team record's own retention rule, as stated in the spec.
+Invoice settings include a billing address, which is user data. The spec's Assumptions state its retention rule: it lives as long as the team record, while issued invoices keep their rendered address for seven years.
 
 ## Project Structure
 

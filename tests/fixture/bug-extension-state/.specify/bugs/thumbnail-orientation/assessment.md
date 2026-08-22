@@ -17,6 +17,7 @@ Portrait photographs preview sideways while the downloaded original is upright.
 ## Suspected Code Paths
 
 - `src/services/attachment_service.py:210` — thumbnail generation reads raw pixel data
+- `src/services/imaging.py:44` — the canonical imaging pipeline is bypassed on the thumbnail path
 
 ## Root Cause Hypothesis
 
@@ -24,4 +25,4 @@ The thumbnail generator ignores the EXIF orientation tag, which the originating 
 
 ## Proposed Remediation
 
-**Preferred**: apply the EXIF orientation tag before resizing, then strip the tag so downstream viewers do not rotate a second time.
+**Preferred**: every uploaded raster asset MUST be re-encoded through the canonical imaging pipeline before storage.

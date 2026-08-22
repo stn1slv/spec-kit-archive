@@ -59,3 +59,4 @@ An administrator sets the billing address rendered on every invoice.
 
 - One invoice configuration per team; per-project invoice settings are out of scope.
 - Invoice numbering is per team, not global across teams.
+- The billing address is retained for as long as the team record it belongs to, and is deleted with it; issued invoices keep the address they were rendered with for the statutory seven years.

@@ -216,7 +216,7 @@ The two new features are added **inside `project/`** rather than as an overlay, 
 | T43 | `extensions.yml` `installed` uses the bare id `bug` | `bug-extension-state/` | 0.6's "is" branch, which no earlier round has run |
 | T44 | Reports use the **real** `bug` templates: `## Root Cause Hypothesis`, `**Slug**`/`**Verdict**`/`**Severity**`, no `Type`, no `Status` in `assessment.md` | `bug-extension-state/` | Whether the command reads the headings the tool actually writes, rather than a plausible-sounding variant |
 | T45 | The base fixture's agent file carries **legacy** basename bullets (`- 001-task-manager:`) | `project/AGENTS.md:23`, `archived-state/AGENTS.md:26-27` | Re-archiving must update that bullet **in place** and upgrade it to the `FEATURE_ID` form, never append a second bullet |
-| T46 | `{SCRIPT}` fails, or returns a good `REPO_ROOT` | any clean run | Only a missing `REPO_ROOT` triggers recovery; an empty `FEATURE_DIR` never does |
+| T46 | `{SCRIPT}` succeeds and reports `FEATURE_DIR` = `specs/002-notifications`, from the `feature.json` the fixture ships, whatever feature is being archived | `project/.specify/feature.json` | Two things at once: `REPO_ROOT` is good so **no** recovery fires, and the reported feature differs from the archived one so 0.1 step 2 requires the report to name both |
 | T47 | `agent-context` config present but naming nothing, with `integration: copilot` | `agent-context-defaults-state/` | Whether the defaults lookup runs, or the run falls through to a probe that cannot find `.github/copilot-instructions.md` |
 | T48 | Every in-body command reference is a `__SPECKIT_COMMAND_*__` token | `commands/archive.md` | A literal `/speckit.…` surviving anywhere means non-dot agents are told to run a command that does not exist |
 
@@ -237,6 +237,7 @@ The two new features are added **inside `project/`** rather than as an overlay, 
 - **T32**: refs carry `specs/billing/006-invoice-settings/...`; a ref naming only `006-invoice-settings` is a miss.
 - The `**Spec:**` link is `../../specs/billing/006-invoice-settings/spec.md` and resolves from `.specify/memory/`.
 - The Recent Changes bullet names the full relative path.
+- **Constitution**: 006 stores a billing address, so Principle II applies. Its spec's Assumptions state the retention rule outright, matching how the timestamped export feature satisfies the same rule, so **no unmet obligation is raised**. A run that flags one has read the plan's `## Constitution Check` as the statement instead of the spec: that section is read but can never close a flag by asserting compliance.
 
 ### Case Q3 — prefix expansion and the scope-directory error
 
@@ -296,7 +297,9 @@ Overlay `bug-extension-state/` over a clean `project/`; `/speckit.archive.run sp
 - **T39**: `attachment-quota-drift` is **addressed** too, because the FR-005 annotation names it, and its slug also appears in `**Bugs addressed:**`. Its `fix.md` says `**Status**: not-applied`, which contradicts that annotation: the run must **name the discrepancy** under `## Outstanding Items`. Silently trusting either side is the miss.
 - **T44**: header fields come from the real template — `**Slug**`, `**Verdict**`, `**Severity**` — and `Type`/`Status` are recorded **absent** for `assessment.md` rather than invented or hunted for elsewhere. `**Status**` is taken only from `fix.md`'s header region.
 - **T40**: `report-timezone` is neither listed nor described, and **its `## Root Cause Hypothesis` must not appear in Known Issues** — an entry about weekly report timezones proves the file was opened. The report states that `.specify/bugs/` holds three slugs and that two were attributed, so its exclusion is visible as a count.
-- **T41**: none of these phrases appears anywhere under `.specify/memory/` or in any agent context file — `normalize EXIF orientation`, `reject any image whose orientation tag cannot be parsed`, `enforce the per-team storage quota at commit time`. Grep for them; a hit is an outright failure of the bounded read.
+- **T41**: none of these phrases appears anywhere under `.specify/memory/` or in any agent context file. Grep for each; a hit is an outright failure of the bounded read.
+  - From files never opened at all: `normalize EXIF orientation` and `enforce the per-team storage quota at commit time` (`fix.md` bodies), `reject any image whose orientation tag cannot be parsed` (`test.md`).
+  - **From `assessment.md`'s off-limits sections** — the file the command *does* open, which makes these the likelier leak: `canonical imaging pipeline` (Proposed Remediation and Suspected Code Paths) and `sole gatekeeper` (Proposed Remediation). Only the header region and `## Root Cause Hypothesis` may be read from that file, and 5.3's Known Issues template asks for a "Prevention Rule", which is an active invitation to reach into Proposed Remediation. A run that fills Prevention Rule from there will trip this grep.
 - Root-cause **hypotheses** from both attributed reports reach the agent file's Known Issues, titled by slug. The heading read is `## Root Cause Hypothesis`, not `## Root Cause Analysis`, which no repo-level report carries.
 - **T43**: 0.6 reports a bugfix extension installed, matching the bare id `bug`.
 - The `**Bugfix**:` annotations are metadata: FR-004 and FR-005 archive, the annotations do not.
@@ -329,7 +332,7 @@ Re-run **Case K** exactly as round 5 ran it: `/speckit.archive.run specs/004-att
 Compare against `BASELINE-v1.2.2.md`'s Case K result. The v1.3.0 edits to Allowed Sources, the Edit Rules, 5.3, 5.4 and the Step 6 template must not have perturbed it:
 
 - The agent file resolves by the **last-resort probe**, branch (c): a clean `project/` has no `agent-context` config and no `.specify/init-options.json`, so neither of the earlier branches names anything. It finds `AGENTS.md` — `GEMINI.md` does not exist there. The report must say that branch was taken and recommend setting `context_file`.
-- **T46**: `{SCRIPT}` returns a good `REPO_ROOT` with an empty `FEATURE_DIR`, which is the normal `--paths-only` result. `## Path Resolution` must read "Resolved from argument", **not** report a walk-up fallback. Reporting a fallback here means the run keyed the fallback on `FEATURE_DIR` instead of `REPO_ROOT`.
+- **T46**: running the fixture's own `check-prerequisites.sh --json --paths-only` from `project/` exits 0 and reports `FEATURE_DIR` = `.../specs/002-notifications`, because `.specify/feature.json` pins 002. Ctl archives **004**, so both halves of 0.1 apply: `REPO_ROOT` is usable, therefore `## Path Resolution` must say the path was resolved from the argument and must **not** report a walk-up fallback; and the script's feature differs from the archived one, so the report must name both. A run that reports a fallback keyed the decision on `FEATURE_DIR` instead of `REPO_ROOT`; a run that stays silent about 002 missed the mismatch rule. An empty `FEATURE_DIR` is not a state this fixture can produce, so nothing should expect one.
 - 001's legacy basename bullet in `project/AGENTS.md:23` is a different feature from the one being archived (004), so it stays untouched.
 - Only 004's feature-scoped `bugs/` is audited; a clean `project/` has no `.specify/bugs/`, so no repo-level pass happens and the report says nothing about attribution counts.
 - Refs, IDs and the changelog entry match the v1.2.2 result.

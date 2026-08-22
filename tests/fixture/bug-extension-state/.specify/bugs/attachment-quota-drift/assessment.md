@@ -24,4 +24,4 @@ The quota check sits on the upload handler rather than the storage-commit step, 
 
 ## Proposed Remediation
 
-**Preferred**: enforce quota at the single point where bytes are committed to storage.
+**Preferred**: the storage-commit step MUST become the sole gatekeeper for every per-team byte budget.
