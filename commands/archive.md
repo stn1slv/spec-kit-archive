@@ -31,7 +31,7 @@ Parse `$ARGUMENTS` as follows:
 - `--spec-only` — update only `.specify/memory/spec.md`
 - `--plan-only` — update only `.specify/memory/plan.md`
 - `--changelog-only` — update only `.specify/memory/changelog.md`
-- `--agent-only` — update only the agent context file(s), as discovered by Step 5.3; when a project keeps several in sync, this covers all of them
+- `--agent-only` — update only the agent context file(s), as discovered by Step 0.7; when a project keeps several in sync, this covers all of them
 
 If **several** scope modifiers are supplied, the scope is their **union** — `--spec-only --changelog-only` updates both `spec.md` and `changelog.md` and nothing else. "Only" bounds the whole set, not each flag individually.
 
@@ -43,11 +43,11 @@ Rules 2 and 4 have **different jobs**, and keeping them apart is what lets each 
 2. **More than one feature.** This check comes **before** the flag check, so a range or a second path gets the guidance below rather than a generic parse error. Reject when the input covers more than one feature. The checks key on **feature-shaped tokens**, which are these two forms together:
 
    - a **path-shaped feature reference** — a whitespace-free token containing a `specs/` path segment followed by at least one further non-empty segment (`specs/002-x`, `specs/001`, `specs/billing/006-invoice`, `specs/20260814-101500-export`, `../specs/002-x`, `/repo/specs/002-x`), including glob forms such as `specs/00*` or `specs/2026*`
-   - a **bare feature reference** — a whitespace-free token that opens with an unbroken run of digits which is then followed by **either nothing at all or a hyphen**: `007`, `007-invoice-settings`, `20260814-101500-export`. The digit run must end the token or meet a hyphen, so `2FA`, `3rd-party`, `24/7` and `v2` are **not** feature references and stay guidance
+   - a **bare feature reference** — a whitespace-free token that opens with an unbroken run of **three or more** digits which is then followed by **either nothing at all or a hyphen**: `007`, `007-invoice-settings`, `20260814-101500-export`. Two conditions, both required. The digit run must end the token or meet a hyphen, so `2FA`, `3rd-party`, `24/7` and `v2` stay guidance; and it must be at least three digits long, so the measure-and-unit tokens ordinary guidance is full of — `90-day`, `30-day`, `24-hour`, `10-minute` — stay guidance too. Three is the right floor because no feature directory spec-kit creates has a shorter leading run: sequential names are always `###`, timestamped ones open with eight digits. A known bound, since rule 2 is textual and **allowed to be under-inclusive** in both directions: a token that does open with three or more digits and then a hyphen is still read as a feature reference, so `100-day` or an ISO date such as `2026-08-21` beside a range word will be rejected. Write those in prose when guidance needs them
 
    A path-shaped reference counts **anywhere** in the input; a bare one counts only **in the leading region** (before the first prose token), or **beside a range marker whose other side is a feature reference** (the `008` in `specs/001 thru 008`) — digits inside later prose (`handle 404 errors`, `max 500 items`, `attention to 3 edge cases`) are guidance, and so is ordinary punctuation (`double-checked?`, `billing/invoicing`, `*emphasis*`):
    - two or more feature-shaped tokens
-   - a glob character (`*` or `?`) **inside a feature-shaped token** (`specs/00*`, `0??-export`)
+   - a glob character (`*` or `?`) **inside a feature-shaped token** (`specs/00*`, `007-invoice-*`). The token must satisfy one of the two shapes above first, so a glob may follow the leading digit run but never break it. That is why `0??-export` is **not** a bare feature reference: its digit run stops at the first `?`, one character short of the three the shape needs
    - a **word** range marker — `thru`, `through`, or `to` — appearing as a whole token between two feature references (`specs/001 thru specs/008`, `specs/001 thru 008`)
    - a `..` **separating two feature references inside a single token** (`specs/001..specs/008`, `001..008`)
 
@@ -91,8 +91,8 @@ Everything you write into main project memory must come from the files below. **
 - The existing files in `.specify/memory/`, `constitution.md` among them (0.4, 0.5, Step 2, Step 5)
 - `.specify/templates/` — any template a step calls for; today the seed templates in Step 0.4, plus an agent-file template where one exists (recent spec-kit versions ship none — Step 5.3 does not depend on it)
 - `.specify/extensions.yml` (Steps 0.6 and 7.1)
-- The project's agent context file(s), discovered per Step 5.3
-- `.specify/extensions/agent-context/agent-context-config.yml`, `.specify/extensions/agent-context/agent-context-defaults.json` and `.specify/init-options.json` — read **only** to locate the agent context file(s) and their markers, never for content (Step 5.3). These are listed for the same reason `.specify/extensions.yml` is: this command reads them to know where to write, not to take anything from them. The last two are the lookup the `agent-context` extension itself performs, and following it is what stops this command guessing a different anchor than the tool that owns the file
+- The project's agent context file(s), discovered per Step 0.7 and written by Step 5.3
+- `.specify/extensions/agent-context/agent-context-config.yml`, `.specify/extensions/agent-context/agent-context-defaults.json` and `.specify/init-options.json` — read **only** to locate the agent context file(s) and their markers, never for content (Step 0.7). These are listed for the same reason `.specify/extensions.yml` is: this command reads them to know where to write, not to take anything from them. The last two are the lookup the `agent-context` extension itself performs, and following it is what stops this command guessing a different anchor than the tool that owns the file
 - The output of `{SCRIPT}`
 
 The step numbers above are **descriptive, not restrictive**. This list bounds *which files* you may take content from, never *which step* may read one. If a step needs a file on this list, it may read it.
@@ -153,14 +153,18 @@ Resolve paths **in this order** — each step depends on the one before it, so d
 
 `--paths-only` is also the mode that performs **no writes of its own**: on current spec-kit it does not persist `.specify/feature.json`. That is what makes the no-write promise above hold for a *rejected* run, since rule 4 is evaluated only after `{SCRIPT}` has already been invoked.
 
-**2. `FEATURE_DIR` — the argument always wins.** Resolve the first token of `$ARGUMENTS` **under `REPO_ROOT`**, not under the current working directory, even when step 1's fallback started from cwd — the walk-up has already established `REPO_ROOT` by then, and a run invoked from a subdirectory would otherwise reject a perfectly valid `specs/001-x`.
+**`SPECS_DIR` is derived here**, as soon as `REPO_ROOT` is known: `SPECS_DIR` is `REPO_ROOT / specs`. It belongs with the other derived paths in step 3 by subject, but step 2's resolution ladder tests against it, and this section forbids reordering, so it is defined before its first use rather than after it.
+
+**2. `FEATURE_DIR` — the argument always wins.** Resolve the first token of `$ARGUMENTS` **under `REPO_ROOT`**, not under the current working directory — the walk-up has already established `REPO_ROOT` by the time this step runs, and a run invoked from a subdirectory would otherwise reject a perfectly valid `specs/001-x`.
+
+**One exception, for the form a shell completes.** A token that is *explicitly* relative or absolute, meaning it begins with `../`, `./`, or `/`, is resolved against the **current working directory** (or taken as absolute), not against `REPO_ROOT`. That is the form tab-completion produces from a subdirectory: `cd src && archive ../specs/001-x` means the `specs/` beside `src/`, and resolving it under `REPO_ROOT` would give `REPO_ROOT/../specs/001-x`, outside the project. Normalise it to an absolute path first, then apply the same `SPECS_DIR` containment test as any other token, so a path that genuinely escapes the project still takes rule 4's error. Every other token, `specs/001-x` included, stays `REPO_ROOT`-relative.
 
 A **feature directory** is a directory under `SPECS_DIR` that directly contains `spec.md`. It may sit directly under `specs/`, or one or more levels below a **scope directory** (`specs/billing/006-invoice-settings`). Its name is **not required to carry a three-digit prefix**: sequential (`007-invoice-settings`) and timestamped (`20260814-101500-invoice-settings`) forms are equally valid, and no step of this command may key on the prefix shape.
 
 Resolve the token by this ladder, stopping at the first match:
 
-  a. **As a path** under `REPO_ROOT`, when it names an existing directory **lying under `SPECS_DIR`**. Resolve `..` segments and relative forms first, so `../specs/002-x` and an absolute `/repo/specs/002-x` both normalise before the test; a directory outside `SPECS_DIR` is not a feature directory and takes rule 4's error, because `FEATURE_ID` is defined as a `specs/`-prefixed path and every ref, changelog link and idempotency match built from it would otherwise be wrong. Take it as given otherwise — 0.2 does the validating. Do **not** require it to contain `spec.md` here: a directory holding `plan.md` but no `spec.md` must reach 0.2, which answers it with the actionable "Missing required files" message, rather than being turned away with a misleading resolution error.
-  b. Otherwise, **as a prefix of the final path segment** of exactly one **existing directory** sharing the token's parent path — so `specs/001` matches `specs/001-task-manager`, and `specs/billing/006` matches `specs/billing/006-invoice-settings`. Match on the directory name alone; do **not** require it to contain `spec.md`, for the same reason branch (a) does not: a directory holding only `plan.md` must reach 0.2 and get its actionable "Missing required files" message rather than a misleading resolution error. This search is **non-recursive**: a prefix never reaches into a scope directory the token did not name, so `specs/006` does not find `specs/billing/006-invoice-settings`.
+  a. **As a path**, when it names an existing directory **lying under `SPECS_DIR`**. Normalise it first, per the base rule above: `../specs/002-x` and `./specs/002-x` against the current working directory, `/repo/specs/002-x` as absolute, everything else under `REPO_ROOT`. A directory outside `SPECS_DIR` is not a feature directory and takes rule 4's error, because `FEATURE_ID` is defined as a `specs/`-prefixed path and every ref, changelog link and idempotency match built from it would otherwise be wrong. Take it as given otherwise — 0.2 does the validating. Do **not** require it to contain `spec.md` here: a directory holding `plan.md` but no `spec.md` must reach 0.2, which answers it with the actionable "Missing required files" message, rather than being turned away with a misleading resolution error.
+  b. Otherwise, **as a prefix of the final path segment** of exactly one **existing directory** sharing the token's parent path — so `specs/001` matches `specs/001-task-manager`, and `specs/billing/006` matches `specs/billing/006-invoice-settings`. The match must **also lie under `SPECS_DIR`**, for exactly the reason branch (a) tests it: without that guard a token like `sr` expands to `src/` at the repo root, which is not a scope directory either, so the run carries an `FEATURE_ID` that cannot be `specs/`-prefixed past rule 4 and reports the wrong error. Match on the directory name alone; do **not** require it to contain `spec.md`, for the same reason branch (a) does not: a directory holding only `plan.md` must reach 0.2 and get its actionable "Missing required files" message rather than a misleading resolution error. This search is **non-recursive**: a prefix never reaches into a scope directory the token did not name, so `specs/006` does not find `specs/billing/006-invoice-settings`.
 
 If the ladder finds nothing, or branch (b) finds more than one, apply rule 4's error. If **the resolved directory** — from either branch — contains **no `spec.md` but does contain feature directories below it**, at any depth, it is a scope directory, not a feature: output `ERROR: '[token]' is a scope directory, not a feature` — listing the feature directories it holds — and stop. Never expand a scope directory into the features under it; that would be the batch mode this command does not have.
 
@@ -168,8 +172,7 @@ The resolved directory is `FEATURE_DIR`.
 
 Ignore whatever feature directory `{SCRIPT}` reports. The script resolves it from the project's own state (`SPECIFY_FEATURE_DIRECTORY`, then `.specify/feature.json`), which is whichever feature was last worked on, **not** the one being archived; archival runs after a merge, so the two routinely differ. When they differ, report both in Step 6 so a user who passed the wrong path can see it.
 
-**3. Remaining paths.**
-- `SPECS_DIR` (`REPO_ROOT / specs`)
+**3. Remaining paths.** (`SPECS_DIR` was already derived in step 1, because step 2 needs it.)
 - `MEMORY_DIR` (`REPO_ROOT / .specify/memory`)
 - `TEMPLATES_DIR` (`REPO_ROOT / .specify/templates`)
 
@@ -308,7 +311,7 @@ Current spec-kit does not manage these files itself: the opt-in `agent-context` 
 
       Both files are read **only to learn where to write**, never for content, which is the same footing `agent-context-config.yml` and `.specify/extensions.yml` already sit on in Allowed Sources. Following the lookup the owning extension uses is the whole point: guessing a different answer than the tool that owns these files would write to the wrong anchor while looking like it worked.
 
-   c. **Last-resort probe.** Only when neither of the above produced **a name at all** — no config, an unparseable one, an empty config value, no integration key, or a key the map does not cover — probe for the first of `GEMINI.md`, `AGENTS.md`, `CLAUDE.md` in `REPO_ROOT`, and **say in the report that this branch was taken**. It is a guess: it covers three of the thirty-seven integrations the defaults map knows, and it looks for `GEMINI.md` first, so a project whose real anchor is `.github/copilot-instructions.md`, `QWEN.md` or `.cursor/rules/specify-rules.mdc` will not be found. Recommend setting `context_file` explicitly whenever this branch runs.
+   c. **Last-resort probe.** Only when neither of the above produced **a name at all** — no config, an unparseable one, an empty config value, no integration key, or a key the map does not cover — probe for the first of `GEMINI.md`, `AGENTS.md`, `CLAUDE.md` in `REPO_ROOT`, and **say in the report that this branch was taken**. It is a guess, and a partial one: those three filenames are the mapped anchor for twenty of the thirty-seven integrations the defaults map knows, so it is right more often than not, and wrong in two distinct ways for the other seventeen. A project whose real anchor is `.github/copilot-instructions.md`, `QWEN.md` or `.cursor/rules/specify-rules.mdc` is not found at all. Worse, the probe takes the first name that **exists** rather than the one the project uses, and `GEMINI.md` is first, so a project anchored on `AGENTS.md` that also happens to carry a stray `GEMINI.md` is written to the wrong file. Recommend setting `context_file` explicitly whenever this branch runs.
 
 **A name is a target, whether or not the file exists.** Branches (a) and (b) both *resolve* targets; existence is checked afterwards, never as part of deciding which branch won. A target that does not exist on disk is **skipped and named in the report** — this holds identically for a configured path and for one the defaults map produced. Falling through to (c) because a resolved name points at a missing file is **wrong**, and it is precisely how a run ends up writing to an anchor that is not the project's.
 
@@ -615,7 +618,7 @@ Before making any edits, produce a brief impact map:
 | `AGENTS.md` | Recent Changes, Known Issues | Append |
 ```
 
-Give each agent context file **its own row**: when Step 5.3 resolves several, the map must show every file that will be written, not one row standing for all of them.
+Give each agent context file **its own row**: when Step 0.7 resolves several, the map must show every file that will be written, not one row standing for all of them.
 
 This gives the user a preview before edits are applied. Include every confirmed supersession target as a `Remove` row, and append the 2.5 verdict table below the map — the folds about to happen and the pairs judged separate are part of the preview.
 
