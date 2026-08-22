@@ -1,0 +1,5 @@
+{
+  "integration": "copilot",
+  "script": "sh",
+  "ai_skills": false
+}
