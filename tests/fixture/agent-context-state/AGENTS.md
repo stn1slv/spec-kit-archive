@@ -4,7 +4,7 @@ This preamble sits **above** the managed block and is freely writable.
 
 ## Active Technologies
 
-- Python 3.12 + FastAPI 0.115, SQLAlchemy 2.0 (001-task-manager)
+- Celery 5.4, Redis 7.4 (broker only) (002-notifications)
 
 <!-- TEAM CONTEXT START -->
 ## Managed by the agent-context extension
@@ -31,4 +31,4 @@ src/
 
 ## Recent Changes
 
-- specs/001-task-manager: task CRUD, single-owner assignment, deadlines
+- 002-notifications: 24h deadline reminders, daily overdue summaries, 90-day completed-task retention

@@ -274,6 +274,7 @@ Each must produce the one-feature-per-run error and **write nothing** (I7). Veri
 Overlay `agent-context-state/` over a clean `project/`; `/speckit.archive.run specs/001-task-manager`
 
 - Discovery reports the **config** branch, branch (a), and **four** configured targets. It must not consult `init-options.json` or the defaults map: a config that names files ends the ladder.
+- **Neither writable target names `001-task-manager` before the run**, so both receive a genuine first write and the idempotency rule cannot mask the result. The overlay's earlier form carried that bullet in both files and invalidated this case in round 6; the fix is recorded in `BASELINE-v1.3.0.md`. Each file's existing `- 002-notifications:` bullet is in the legacy basename form and belongs to a feature this run does not touch, so it must survive **unchanged**, exactly as in Case L6.
 - `AGENTS.md` and `docs/agent/CLAUDE.md` are written, each receiving the same section set. **T37** confirms the nested path is honoured.
 - **T38**: nothing is written between `<!-- TEAM CONTEXT START -->` and `<!-- TEAM CONTEXT END -->` in `AGENTS.md`; the sections land in the writable regions above or below it. The managed block's own text is byte-for-byte unchanged.
 - **T35**: `GEMINI.md` is skipped and named — it has no region outside its markers. A run that writes into it has almost certainly ignored the config and fallen back, since `GEMINI.md` is the first fallback name.
@@ -284,7 +285,7 @@ Overlay `agent-context-state/` over a clean `project/`; `/speckit.archive.run sp
 
 Same overlay; `/speckit.archive.run specs/001-task-manager --agent-only`
 
-- Both writable targets are updated: `--agent-only` covers **all** discovered context files, not the first one.
+- Both writable targets are updated: `--agent-only` covers **all** discovered context files, not the first one. As in R1, neither names this feature beforehand, so a target left untouched is a miss rather than an idempotent no-op.
 - `.specify/memory/` is untouched.
 - The two skips are reported again with their reasons; the run completes rather than stopping on them.
 
@@ -338,3 +339,29 @@ Compare against `BASELINE-v1.2.2.md`'s Case K result. The v1.3.0 edits to Allowe
 - Refs, IDs and the changelog entry match the v1.2.2 result.
 
 Differences confined to the new report lines (discovery branch, target count) are acceptable and expected. Any difference in archived **content** is a regression and blocks the release.
+
+## Round 6b (re-runs after the meta-review fixes; committed before any 6b run)
+
+Four items from the review changed behaviour the round-6 runs had already exercised, and one case was invalidated by a fixture defect. These re-runs cover exactly that.
+
+### Case Q6: branch (b) must not expand outside `SPECS_DIR`
+
+`/speckit.archive.run sr`, clean `project/`
+
+Branch (b) matches a prefix of the final path segment of one existing directory sharing the token's parent path. Before the fix, `sr` expanded to `src/` at the repository root when one exists, which is neither a feature nor a scope directory, so the run carried an `FEATURE_ID` that cannot be `specs/`-prefixed past rule 4 and reported "Missing required files" instead of a resolution error.
+
+The fixture's `project/` has no `src/`, so the case needs one: create an empty `src/` directory in the working copy before the run.
+
+- The run stops with rule 4's `does not resolve to exactly one feature directory` error, **not** 0.2's "Missing required files" and **not** the scope-directory error.
+- Nothing is written.
+
+### Cases R1b / R2b: the corrected agent-context overlay
+
+Re-run R1 and R2 exactly as registered, against the repaired `agent-context-state/`. Neither writable target now names `001-task-manager`, so both must receive a genuine write, and a target left untouched is a miss. Each file's `- 002-notifications:` bullet is legacy-form and belongs to another feature, so it must survive **unchanged**.
+
+### Cases Q4d-b / Q5b: rule 2 after the three-digit narrowing
+
+A bare feature reference now requires **three or more** leading digits. Both cases must land exactly where they did before the change:
+
+- `specs/billing/006 thru 008` is still rejected: `008` is three digits, so it is still a bare reference beside a range marker whose other side is a feature reference.
+- `specs/20260814-101500-timestamped-export Watch the 3 edge cases and any handling of 404 errors when we migrate to postgres.` is still accepted and archived. `3` is now below the digit floor; `404` clears it but sits beside neither a range marker nor the leading region, so it stays guidance. A rejection here is a regression introduced by the narrowing.

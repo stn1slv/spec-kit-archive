@@ -8,5 +8,5 @@ Active plan: specs/002-notifications/plan.md
 
 ## Active Technologies
 
-- Python 3.12 + FastAPI 0.115, SQLAlchemy 2.0 (001-task-manager)
+- Celery 5.4, Redis 7.4 (broker only) (002-notifications)
 <!-- TEAM CONTEXT END -->

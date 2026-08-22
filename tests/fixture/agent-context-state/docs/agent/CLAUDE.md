@@ -5,7 +5,7 @@ managed-section set as `AGENTS.md`, and has no marker block of its own yet.
 
 ## Active Technologies
 
-- Python 3.12 + FastAPI 0.115, SQLAlchemy 2.0 (001-task-manager)
+- Celery 5.4, Redis 7.4 (broker only) (002-notifications)
 
 ## Commands
 
@@ -13,4 +13,4 @@ managed-section set as `AGENTS.md`, and has no marker block of its own yet.
 
 ## Recent Changes
 
-- specs/001-task-manager: task CRUD, single-owner assignment, deadlines
+- 002-notifications: 24h deadline reminders, daily overdue summaries, 90-day completed-task retention
