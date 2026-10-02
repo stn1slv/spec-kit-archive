@@ -5,7 +5,7 @@ Expectations pre-registered in `43e65ee` (round 7) and `8c185ae` (Case C3), **be
 | Case | Covers | Result |
 |---|---|---|
 | H1 | hook without `enabled`; disabled after-hook; new changelog title; skipped 2.5 prints no numbers | Pass |
-| H2 | unreadable `extensions.yml` | Pass, one sub-check unverifiable (below) |
+| H2 | unreadable `extensions.yml` | Partial in round 7; Pass in round 7b |
 | L6b | retired items stay retired on re-archival | Pass |
 | M2 | item-level refs in new `RETIRED:` lines | Not exercised (below) |
 | C3 | item-level refs in new `RETIRED:` lines, explicit replacement | Pass |
@@ -42,3 +42,35 @@ Expectations pre-registered in `43e65ee` (round 7) and `8c185ae` (Case C3), **be
 - `claude`, `--script sh`: registered as `.claude/skills/speckit-archive-run/SKILL.md`; `{SCRIPT}` resolved to `.specify/scripts/bash/check-prerequisites.sh --json --paths-only`; no `__SPECKIT_COMMAND_*__` token left; references render as `/speckit-archive-run`.
 - `codex`, `--script py` (skills): registered as `.agents/skills/speckit-archive-run/SKILL.md`; `{SCRIPT}` resolved to `python3 .specify/scripts/python/check_prerequisites.py --json --paths-only`; references render as `$speckit-archive-run`.
 - `generic`: not registered on 1.0.13, which is core behaviour fixed upstream by #4785 after that release. On upstream `main` it registers as `.myagent/commands/speckit.archive.run.md` with no token left.
+
+## Round 7b: re-runs after the six-model review
+
+A review by six models (fable, opus, flash, pro, terra, sol) led to twelve fixes in the command, README, CHANGELOG and fixture docs. Expectations were pre-registered in `0f5c477` before any run. The command under test is `commands/archive.md` with SHA-256 prefix `b92ccc668a4b9653`, which supersedes the round 7 hash. Same method: fresh agents, one per case, checked on disk.
+
+| Case | Covers | Result |
+|---|---|---|
+| L6c | retirement chain; renumbered ID on a file-only line | Pass |
+| H3 | mandatory pre- and post-hooks run, in order | Pass |
+| L6b | retired items stay retired (content check now required) | Pass |
+| C3 | item-level ref in a new `RETIRED:` line | Pass |
+| R4 | already-merged agent files still completed | Pass |
+| H1 | optional and disabled hooks; changelog title; skipped 2.5 | Pass |
+| H2 | unreadable `extensions.yml`, including the bugfix "unknown" note | Pass |
+| Q7 | existing directory outside `specs/` | Pass |
+| Q6 | prefix outside `specs/` keeps rule 4's error | Pass |
+| Ctl | control | Pass |
+
+**Chain and renumbering (L6c).** 001's `FR-004` stayed out: its file-only line names `FR-009`, which a later entry retired with no replacement, so the runner judged the incoming keep-forever text against the line's Reason and matched it. 001's `FR-006` matched the CSV-export line on file and ID only, the content disagreed, and it was archived as `FR-010` with the near-match named under Outstanding Items. Live IDs on disk: `FR-001, 002, 003, 005, 007, 008, 010`, `SC-001, 002, 004, 005`.
+
+**Mandatory hooks (H3).** The pre-hook had no `enabled` field. Both blocks printed `EXECUTE_COMMAND:` without a slash, and `hook-log.txt` reads `pre: changelog=no` then `post: changelog=yes`, so each hook ran, at the right point.
+
+**H2 closed.** The report names the bugfix-extension status as unknown and makes neither bugfix recommendation. The parse-error notice appears in both 0.6 and 7.1, which the review accepted as a cosmetic duplicate.
+
+**C3.** `RETIRED: FR-004 (from specs/001-task-manager/spec.md -> FR-004) → replaced by FR-010`. This runner judged `SC-003` partial rather than retiring it with `FR-004`; the expectation made that retirement conditional, and the runner reported the echo under Superseded Requirements.
+
+**Other observations.**
+
+- H1's runner created an empty `## Known Issues & Gotchas` heading in `AGENTS.md`, while H2, H3 and R4 declined to. This is the 5.3 under-specification already recorded above as deferred, not a 7b regression.
+- L6b and L6c again updated 001's own Merged Features Log bullet to the corrected FR-006 wording; that entry belongs to the feature being archived, so the bounded update rule allows it.
+- Runners kept hitting the em dash write hook. Some wrote a spaced hyphen, others wrote the prescribed em dash through a shell heredoc. Harness artefact only.
+- Two isolation slips, neither of which affected output: Q6's runner wrote and deleted a checksum file beside its project, and C3's runner ran one `git show` whose output went to `/dev/null` (the working copy is not a repository).
