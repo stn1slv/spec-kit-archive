@@ -365,3 +365,91 @@ A bare feature reference now requires **three or more** leading digits. Both cas
 
 - `specs/billing/006 thru 008` is still rejected: `008` is three digits, so it is still a bare reference beside a range marker whose other side is a feature reference.
 - `specs/20260814-101500-timestamped-export Watch the 3 edge cases and any handling of 404 errors when we migrate to postgres.` is still accepted and archived. `3` is now below the digit floor; `404` clears it but sits beside neither a range marker nor the leading region, so it stays guidance. A rejection here is a regression introduced by the narrowing.
+
+## Round 7 cases (v1.4.0 verification; committed before any round-7 run)
+
+v1.4.0 changes five behaviours: the hook blocks follow core's rules, an already-retired item is not re-added, new `RETIRED:` lines carry item-level refs, idempotency is defined per artifact, and an existing directory outside `specs/` gets its own error. Two report fixes ride along: a new `changelog.md` opens with `# Changelog`, and a skipped 2.5 prints no numbers. Every case starts from a clean `project/` copy.
+
+### Case H1: hook without an `enabled` field
+
+Replace `project/.specify/extensions.yml` with:
+
+```yaml
+installed:
+  - id: spec-kit-bugfix
+    version: "1.0.0"
+settings: {}
+hooks:
+  before_archive:
+    - extension: demo
+      command: speckit.demo.precheck
+      description: Demo pre-archive check
+      prompt: Run the demo check before archiving?
+      optional: true
+  after_archive:
+    - extension: demo
+      command: speckit.demo.disabled
+      description: Disabled demo hook
+      optional: true
+      enabled: false
+    - extension: demo
+      command: speckit.demo.notify
+      description: Demo post-archive notice
+      prompt: Send the demo notice?
+      optional: true
+```
+
+then `/speckit.archive.run specs/001-task-manager`.
+
+- The before-hook has no `enabled` field and is shown as an **Optional Pre-Hook** block with `Command:`, `Description:`, `Prompt:` and `To execute:` lines. Skipping it is the v1.3.0 defect.
+- After archival, `speckit.demo.notify` is shown as an **Optional Hook** block; `speckit.demo.disabled` is not shown at all.
+- No hook is executed (both are optional), and archived content matches Case A.
+- **New changelog title**: the created `changelog.md` opens with `# Changelog`, followed by `## Merged Features Log`.
+- **Skipped 2.5**: memory `spec.md` is empty, so `## Consolidation` gives only the skip reason. Any printed `examined: 0` or `folded: 0` is a miss.
+
+### Case H2: unreadable `extensions.yml`
+
+Replace `project/.specify/extensions.yml` with the single line `hooks: [unclosed`, then `/speckit.archive.run specs/001-task-manager`.
+
+- The run tells the user `.specify/extensions.yml` could not be read, includes the parser error, and says no hooks were checked. Silence is the v1.3.0 behaviour and a miss.
+- The bugfix-extension note reads "unknown".
+- The run continues and archives 001 normally.
+
+### Case L6b: retired items stay retired
+
+Re-run **Case L6** exactly as registered: overlay `archived-state/` over a clean `project/`, `/speckit.archive.run specs/001-task-manager`.
+
+- 001's `FR-004` (keep forever) and `SC-003` are **not re-added**. The overlay's `RETIRED:` lines are the legacy file-level form. `FR-004` matches on file and ID, and its incoming text contradicts the named replacement `FR-009` (delete after 90 days); `SC-003` matches on file and ID and says `no replacement`.
+- Both are listed under `## Superseded Requirements` as already retired. A new `FR-010` or `SC-006`, or a new `## Unresolved Contradictions` line for either pair, is the defect this release fixes.
+- No Step 3 question is asked about them.
+- **T45** still holds: 001's legacy bullet in `AGENTS.md` is upgraded in place, never duplicated.
+
+### Case M2: new `RETIRED:` lines carry item-level refs
+
+Re-run **Case M** exactly as registered (`specs/003-reporting`, `archived-state/` overlay, runner confirms removals).
+
+- Every `RETIRED:` line this run writes carries the retired entry's source refs in item-level form after `from`, exactly as the entry carried them (for example `from specs/002-notifications/spec.md -> FR-002`), several refs separated by `; `. A file-only `from` is a miss.
+- The two pre-existing `RETIRED:` lines from 002's entry are untouched (append-only).
+- Everything else Case M registers still holds.
+
+### Case R4: already-merged artifacts are still completed
+
+Overlay `agent-context-state/` over a clean `project/`. Then append the bullet `- specs/001-task-manager: task creation, assignment and completion` under `## Recent Changes` in **both** `AGENTS.md` and `docs/agent/CLAUDE.md`, and run `/speckit.archive.run specs/001-task-manager`.
+
+This is the state round 6 ran R1 and R2 on by accident, when two runners did opposite things.
+
+- Both files already name the feature, so neither gains a second `specs/001-task-manager` bullet.
+- Both files are still completed: `## Active Technologies` in each gains 001's stack (Python 3.12, FastAPI, SQLAlchemy, PostgreSQL 16). Leaving either file untouched is the R1 reading this release rules out.
+- **T38**, **T35** and **T36** hold as in R1.
+
+### Case Q7: existing directory outside `specs/`
+
+In the working copy create `features/001-outside/spec.md` (any content) at the project root, then `/speckit.archive.run features/001-outside`.
+
+- The run stops with `ERROR: 'features/001-outside' lies outside specs/. Only feature directories under REPO_ROOT/specs can be archived.` It does not report rule 4's `does not resolve to exactly one feature directory`, and it does not report 0.2's "Missing required files".
+- Nothing is written.
+
+### Re-runs
+
+- **Q6** exactly as registered: a token naming no existing directory still gets rule 4's error, unchanged.
+- **Ctl** (mandatory) exactly as registered. Ctl starts with an empty memory spec, so the two report fixes apply: `changelog.md` opens with `# Changelog`, and `## Consolidation` gives only the skip reason. Those are the only acceptable differences; `hooks: {}` produces no hook block either way. Any difference in archived content is a regression.
