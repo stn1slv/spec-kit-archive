@@ -530,3 +530,68 @@ Create `.claude/commands/speckit.demo.pre.md` and `.claude/commands/speckit.demo
 
 - **L6b**, **C3**, **R4**, **H1**, **Q6**, **Q7** and **Ctl**, exactly as registered. Their expectations are unchanged. R4 must still complete both agent files; L6b's rewrite of 001's own changelog bullet stays acceptable, because that entry is this feature's own and not a frozen line.
 - **H2** again, because round 7 could not verify its "unknown" bugfix note. The report must name the bugfix-extension status as unknown.
+
+## Round 7c (re-runs after the second six-model review; committed before any 7c run)
+
+The second review moved the already-retired check into a new step 2.0 that runs before 2.1, requires content agreement for every match (item-level refs included), parses `RETIRED:` lines by keyword, checks every ref on a multi-ref line, closes the chain rules, defines in-place updates of entries this feature contributed, and adds handling for skipped and failed mandatory hooks.
+
+### Case L6d: multi-ref line, item-level mismatch, ASCII arrows
+
+Overlay `archived-state/` over a clean `project/`, then in the working copy:
+
+1. Delete the `- **FR-006**:` line from `.specify/memory/spec.md`.
+2. In `.specify/memory/changelog.md`, replace the line starting `- RETIRED: FR-004` with:
+   `- RETIRED: FR-004 (from specs/000-legacy/spec.md -> FR-001; specs/001-task-manager/spec.md -> FR-004) -> replaced by FR-009. Reason: retention rule changed from keep-forever to automatic deletion of completed tasks after 90 days.`
+   (ASCII `->` throughout, on purpose.)
+3. Insert this entry directly under `## Merged Features Log`:
+
+```markdown
+### Export Cleanup - archived 2026-08-20
+**Branch:** `091-export-cleanup`
+**Spec:** [specs/091-export-cleanup/spec.md](../../specs/091-export-cleanup/spec.md)
+
+**What was added:**
+- Withdrew the overdue CSV export
+
+**Superseded:**
+- RETIRED: FR-006 (from specs/001-task-manager/spec.md -> FR-006) -> no replacement. Reason: the CSV export of overdue tasks was withdrawn.
+```
+
+Then `/speckit.archive.run specs/001-task-manager`.
+
+- **Multi-ref, keyword parsing.** 001's `FR-004` is named by the **second** ref of the FR-004 line. The line's replacement `FR-009` is live and the incoming keep-forever text contradicts it, so `FR-004` stays out. Re-adding it means only the first ref was checked or the ASCII arrow confused the parse.
+- **Item-level mismatch.** 001's `FR-006` (reassign to the team lead) is named exactly by the item-level ref, but the Reason describes a CSV export. The content does not agree, so `FR-006` is archived under a new ID above every live and retired ID (`FR-010`) and the near-match is named under Outstanding Items. Leaving it out is the defect this round fixes.
+- `SC-003` stays out as in L6b.
+- No constitution finding or Step 3 question concerns `FR-004` or `SC-003` (2.0 runs before 2.1).
+
+### Case H4: skipped and failing mandatory pre-hooks
+
+Replace `project/.specify/extensions.yml` with:
+
+```yaml
+installed:
+  - id: spec-kit-bugfix
+    version: "1.0.0"
+settings: {}
+hooks:
+  before_archive:
+    - extension: demo
+      command: speckit.demo.gated
+      description: Conditional gate
+      optional: false
+      condition: "config.demo.enabled"
+    - extension: demo
+      command: speckit.demo.fail
+      description: Failing gate
+      optional: false
+```
+
+Create `.claude/commands/speckit.demo.fail.md` telling the agent to append `fail: ran` to `hook-log.txt` at the project root and then report the error `demo gate failed: archive blocked`. Do not create a file for `speckit.demo.gated`. Then `/speckit.archive.run specs/001-task-manager`.
+
+- The user is told that `speckit.demo.gated` was skipped because it carries a condition this command does not evaluate. Silence is a miss.
+- `speckit.demo.fail` runs (`hook-log.txt` holds `fail: ran`), its error is reported with the hook named, and the run stops before Step 1.
+- No Step 1 or later content is written: `.specify/memory/spec.md`, if it exists, carries no `FR-` entry, and no `changelog.md` entry for 001 exists. The run says what 0.4 had already written.
+
+### Re-runs
+
+- **L6b**, **L6c**, **C3**, **R4**, **H3** and **Ctl**, exactly as registered. In L6c the report line for 001's `FR-004` must name both the line's own replacement (`FR-009`) and that it was retired since, with no live replacement.
