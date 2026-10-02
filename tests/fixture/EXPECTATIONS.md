@@ -119,6 +119,8 @@ New traps, in feature `004-attachments` and `project/.specify/extensions.yml`:
 
 ### Case M — `specs/003-reporting`, full scope, starting from the `../archived-state/` overlay; runner **confirms** removals
 
+> **Retired in round 7.** The FR-008 supersession below predates v1.2.2's whole-or-partial procedure, under which runners judge the pair partial (see `BASELINE-v1.4.0.md`, M2). Do not score M on it. Case C3 covers a confirmed supersession and the `RETIRED:` format.
+
 - The 2.5 verdict table appears in the Step 4 preview; the Consolidation section opens with `incoming items: M; candidate pairs examined: K (dropped: 0); folded: N` with N ≥ 1 (the Task entity extension folds) — numbers, not prose.
 - The planted FR-008-vs-FR-002 contradiction routes through 2.4; on confirmation the superseded side is removed with a `RETIRED:` line (dependent items may retire with it, per the accepted v1.1.2 precedent).
 - **T15's default branch, finally**: the Constraints scalar conflict is raised as a Step 3 question; on the recommended default the field keeps the current implemented state, the superseded value's **ref is dropped with it**, and both are recorded in the revision note and report.
@@ -365,3 +367,231 @@ A bare feature reference now requires **three or more** leading digits. Both cas
 
 - `specs/billing/006 thru 008` is still rejected: `008` is three digits, so it is still a bare reference beside a range marker whose other side is a feature reference.
 - `specs/20260814-101500-timestamped-export Watch the 3 edge cases and any handling of 404 errors when we migrate to postgres.` is still accepted and archived. `3` is now below the digit floor; `404` clears it but sits beside neither a range marker nor the leading region, so it stays guidance. A rejection here is a regression introduced by the narrowing.
+
+## Round 7 cases (v1.4.0 verification; committed before any round-7 run)
+
+v1.4.0 changes five behaviours: the hook blocks follow core's rules, an already-retired item is not re-added, new `RETIRED:` lines carry item-level refs, idempotency is defined per artifact, and an existing directory outside `specs/` gets its own error. Two report fixes ride along: a new `changelog.md` opens with `# Changelog`, and a skipped 2.5 prints no numbers. Every case starts from a clean `project/` copy.
+
+### Case H1: hook without an `enabled` field
+
+Replace `project/.specify/extensions.yml` with:
+
+```yaml
+installed:
+  - id: spec-kit-bugfix
+    version: "1.0.0"
+settings: {}
+hooks:
+  before_archive:
+    - extension: demo
+      command: speckit.demo.precheck
+      description: Demo pre-archive check
+      prompt: Run the demo check before archiving?
+      optional: true
+  after_archive:
+    - extension: demo
+      command: speckit.demo.disabled
+      description: Disabled demo hook
+      optional: true
+      enabled: false
+    - extension: demo
+      command: speckit.demo.notify
+      description: Demo post-archive notice
+      prompt: Send the demo notice?
+      optional: true
+```
+
+then `/speckit.archive.run specs/001-task-manager`.
+
+- The before-hook has no `enabled` field and is shown as an **Optional Pre-Hook** block with `Command:`, `Description:`, `Prompt:` and `To execute:` lines. Skipping it is the v1.3.0 defect.
+- After archival, `speckit.demo.notify` is shown as an **Optional Hook** block; `speckit.demo.disabled` is not shown at all.
+- No hook is executed (both are optional), and archived content matches Case A.
+- **New changelog title**: the created `changelog.md` opens with `# Changelog`, followed by `## Merged Features Log`.
+- **Skipped 2.5**: memory `spec.md` is empty, so `## Consolidation` gives only the skip reason. Any printed `examined: 0` or `folded: 0` is a miss.
+
+### Case H2: unreadable `extensions.yml`
+
+Replace `project/.specify/extensions.yml` with the single line `hooks: [unclosed`, then `/speckit.archive.run specs/001-task-manager`.
+
+- The run tells the user `.specify/extensions.yml` could not be read, includes the parser error, and says no hooks were checked. Silence is the v1.3.0 behaviour and a miss.
+- The bugfix-extension note reads "unknown".
+- The run continues and archives 001 normally.
+
+### Case L6b: retired items stay retired
+
+Re-run **Case L6** exactly as registered: overlay `archived-state/` over a clean `project/`, `/speckit.archive.run specs/001-task-manager`.
+
+- 001's `FR-004` (keep forever) and `SC-003` are **not re-added**. The overlay's `RETIRED:` lines are the legacy file-level form. `FR-004` matches on file and ID, and its incoming text contradicts the named replacement `FR-009` (delete after 90 days); `SC-003` matches on file and ID and says `no replacement`.
+- Both are listed under `## Superseded Requirements` as already retired. A new `FR-010` or `SC-006`, or a new `## Unresolved Contradictions` line for either pair, is the defect this release fixes.
+- No Step 3 question is asked about them.
+- **T45** still holds: 001's legacy bullet in `AGENTS.md` is upgraded in place, never duplicated.
+
+### Case M2: new `RETIRED:` lines carry item-level refs
+
+Re-run **Case M** exactly as registered (`specs/003-reporting`, `archived-state/` overlay, runner confirms removals).
+
+- Every `RETIRED:` line this run writes carries the retired entry's source refs in item-level form after `from`, exactly as the entry carried them (for example `from specs/002-notifications/spec.md -> FR-002`), several refs separated by `; `. A file-only `from` is a miss.
+- The two pre-existing `RETIRED:` lines from 002's entry are untouched (append-only).
+- Everything else Case M registers still holds.
+
+### Case R4: already-merged artifacts are still completed
+
+Overlay `agent-context-state/` over a clean `project/`. Then append the bullet `- specs/001-task-manager: task creation, assignment and completion` under `## Recent Changes` in **both** `AGENTS.md` and `docs/agent/CLAUDE.md`, and run `/speckit.archive.run specs/001-task-manager`.
+
+This is the state round 6 ran R1 and R2 on by accident, when two runners did opposite things.
+
+- Both files already name the feature, so neither gains a second `specs/001-task-manager` bullet.
+- Both files are still completed: `## Active Technologies` in each gains 001's stack (Python 3.12, FastAPI, SQLAlchemy, PostgreSQL 16). Leaving either file untouched is the R1 reading this release rules out.
+- **T38**, **T35** and **T36** hold as in R1.
+
+### Case Q7: existing directory outside `specs/`
+
+In the working copy create `features/001-outside/spec.md` (any content) at the project root, then `/speckit.archive.run features/001-outside`.
+
+- The run stops with `ERROR: 'features/001-outside' lies outside specs/. Only feature directories under REPO_ROOT/specs can be archived.` It does not report rule 4's `does not resolve to exactly one feature directory`, and it does not report 0.2's "Missing required files".
+- Nothing is written.
+
+### Re-runs
+
+- **Q6** exactly as registered: a token naming no existing directory still gets rule 4's error, unchanged.
+- **Ctl** (mandatory) exactly as registered. Ctl starts with an empty memory spec, so the two report fixes apply: `changelog.md` opens with `# Changelog`, and `## Consolidation` gives only the skip reason. Those are the only acceptable differences; `hooks: {}` produces no hook block either way. Any difference in archived content is a regression.
+
+### Case C3: item-level refs in new `RETIRED:` lines (added after M2; committed before its run)
+
+M2 confirmed nothing: its runner judged the FR-008 vs FR-002 pair partial under 2.4's whole-or-partial procedure (unchanged since v1.2.2), so no `RETIRED:` line was written and the new format went unexercised. C3 uses the explicit replacement in T7 instead.
+
+Start from the end state of a passing Case A run (round 7 uses H1's end state, with `.specify/extensions.yml` restored to the fixture original), then `/speckit.archive.run specs/002-notifications`; the runner **confirms** removals.
+
+- `FR-004` (keep forever) is retired. Its new line reads `RETIRED: FR-004 (from specs/001-task-manager/spec.md -> FR-004) → replaced by <the main-memory ID of 002's FR-004>`. A file-only `from` is the miss this case exists to catch.
+- If `SC-003` is retired with it (the accepted v1.1.2 precedent), its line carries `from specs/001-task-manager/spec.md -> SC-003`.
+- No `<pending>` survives, and IDs continue above the highest live and retired ID.
+
+## Round 7b (re-runs after the six-model review; committed before any 7b run)
+
+The review changed the already-retired rule (file-only lines now need content agreement, the replacement chain is followed, revised text behind an item-level match is flagged), bounded the per-artifact update rule, reworded branch (a) and the two hook sections. Every case touching those paths runs again, plus two new ones.
+
+### Case L6c: retirement chain and renumbered IDs
+
+Overlay `archived-state/` over a clean `project/`, then in the working copy:
+
+1. Delete the `- **FR-006**:` and `- **FR-009**:` lines from `.specify/memory/spec.md`.
+2. Insert this entry in `.specify/memory/changelog.md` directly under `## Merged Features Log`:
+
+```markdown
+### Retention Rollback - archived 2026-08-20
+**Branch:** `090-retention-rollback`
+**Spec:** [specs/090-retention-rollback/spec.md](../../specs/090-retention-rollback/spec.md)
+
+**What was added:**
+- Withdrew automatic deletion of completed tasks and the overdue CSV export
+
+**Superseded:**
+- RETIRED: FR-009 (from specs/002-notifications/spec.md -> FR-004) → no replacement. Reason: automatic deletion of completed tasks was withdrawn.
+- RETIRED: FR-006 (from specs/001-task-manager/spec.md) → no replacement. Reason: the CSV export of overdue tasks was withdrawn.
+```
+
+Then `/speckit.archive.run specs/001-task-manager`.
+
+- **Chain.** 001's `FR-004` (keep forever) matches the file-only line naming `FR-009`, which is itself retired with no replacement, so there is no live replacement. The line's Reason says keep-forever was retired, and the incoming item states keep-forever, so it stays out and is listed under Superseded Requirements. Re-adding it is the defect terra and flash found.
+- **Renumbered ID.** 001's `FR-006` (reassign to the team lead) matches the second line on file and ID only. Its Reason describes a CSV export, which `FR-006` does not state, so the match is rejected: `FR-006` is archived under a new ID above every live and retired ID (`FR-010`), and the near-match is named under Outstanding Items. Leaving it out is the defect sol and opus found.
+- `SC-003` stays out as in L6b.
+- No Step 3 question about any of the three.
+
+### Case H3: mandatory hooks run, in order
+
+Replace `project/.specify/extensions.yml` with:
+
+```yaml
+installed:
+  - id: spec-kit-bugfix
+    version: "1.0.0"
+settings: {}
+hooks:
+  before_archive:
+    - extension: demo
+      command: speckit.demo.pre
+      description: Record a pre-archive marker
+      optional: false
+  after_archive:
+    - extension: demo
+      command: speckit.demo.post
+      description: Record a post-archive marker
+      optional: false
+      enabled: true
+```
+
+Create `.claude/commands/speckit.demo.pre.md` and `.claude/commands/speckit.demo.post.md`, each telling the agent to append one line to `hook-log.txt` at the project root: `pre: changelog=<yes|no>` or `post: changelog=<yes|no>`, where the value says whether `.specify/memory/changelog.md` exists at that moment. The runner is told that project commands live in `.claude/commands/<id>.md`. Then `/speckit.archive.run specs/001-task-manager`.
+
+- The pre-hook has no `enabled` field and still runs. Its block is **Automatic Pre-Hook** with `Executing:` and `EXECUTE_COMMAND: speckit.demo.pre` (no slash); the post block is **Automatic Hook**.
+- `hook-log.txt` holds exactly two lines, in this order: `pre: changelog=no`, then `post: changelog=yes`. A missing line means a mandatory hook was printed but not run; a wrong order or value means it ran at the wrong time.
+- Archived content matches Case A.
+
+### Re-runs
+
+- **L6b**, **C3**, **R4**, **H1**, **Q6**, **Q7** and **Ctl**, exactly as registered. Their expectations are unchanged. R4 must still complete both agent files; L6b's rewrite of 001's own changelog bullet stays acceptable, because that entry is this feature's own and not a frozen line.
+- **H2** again, because round 7 could not verify its "unknown" bugfix note. The report must name the bugfix-extension status as unknown.
+
+## Round 7c (re-runs after the second six-model review; committed before any 7c run)
+
+The second review moved the already-retired check into a new step 2.0 that runs before 2.1, requires content agreement for every match (item-level refs included), parses `RETIRED:` lines by keyword, checks every ref on a multi-ref line, closes the chain rules, defines in-place updates of entries this feature contributed, and adds handling for skipped and failed mandatory hooks.
+
+### Case L6d: multi-ref line, item-level mismatch, ASCII arrows
+
+Overlay `archived-state/` over a clean `project/`, then in the working copy:
+
+1. Delete the `- **FR-006**:` line from `.specify/memory/spec.md`.
+2. In `.specify/memory/changelog.md`, replace the line starting `- RETIRED: FR-004` with:
+   `- RETIRED: FR-004 (from specs/000-legacy/spec.md -> FR-001; specs/001-task-manager/spec.md -> FR-004) -> replaced by FR-009. Reason: retention rule changed from keep-forever to automatic deletion of completed tasks after 90 days.`
+   (ASCII `->` throughout, on purpose.)
+3. Insert this entry directly under `## Merged Features Log`:
+
+```markdown
+### Export Cleanup - archived 2026-08-20
+**Branch:** `091-export-cleanup`
+**Spec:** [specs/091-export-cleanup/spec.md](../../specs/091-export-cleanup/spec.md)
+
+**What was added:**
+- Withdrew the overdue CSV export
+
+**Superseded:**
+- RETIRED: FR-006 (from specs/001-task-manager/spec.md -> FR-006) -> no replacement. Reason: the CSV export of overdue tasks was withdrawn.
+```
+
+Then `/speckit.archive.run specs/001-task-manager`.
+
+- **Multi-ref, keyword parsing.** 001's `FR-004` is named by the **second** ref of the FR-004 line. The line's replacement `FR-009` is live and the incoming keep-forever text contradicts it, so `FR-004` stays out. Re-adding it means only the first ref was checked or the ASCII arrow confused the parse.
+- **Item-level mismatch.** 001's `FR-006` (reassign to the team lead) is named exactly by the item-level ref, but the Reason describes a CSV export. The content does not agree, so `FR-006` is archived under a new ID above every live and retired ID (`FR-010`) and the near-match is named under Outstanding Items. Leaving it out is the defect this round fixes.
+- `SC-003` stays out as in L6b.
+- No constitution finding or Step 3 question concerns `FR-004` or `SC-003` (2.0 runs before 2.1).
+
+### Case H4: skipped and failing mandatory pre-hooks
+
+Replace `project/.specify/extensions.yml` with:
+
+```yaml
+installed:
+  - id: spec-kit-bugfix
+    version: "1.0.0"
+settings: {}
+hooks:
+  before_archive:
+    - extension: demo
+      command: speckit.demo.gated
+      description: Conditional gate
+      optional: false
+      condition: "config.demo.enabled"
+    - extension: demo
+      command: speckit.demo.fail
+      description: Failing gate
+      optional: false
+```
+
+Create `.claude/commands/speckit.demo.fail.md` telling the agent to append `fail: ran` to `hook-log.txt` at the project root and then report the error `demo gate failed: archive blocked`. Do not create a file for `speckit.demo.gated`. Then `/speckit.archive.run specs/001-task-manager`.
+
+- The user is told that `speckit.demo.gated` was skipped because it carries a condition this command does not evaluate. Silence is a miss.
+- `speckit.demo.fail` runs (`hook-log.txt` holds `fail: ran`), its error is reported with the hook named, and the run stops before Step 1.
+- No Step 1 or later content is written: `.specify/memory/spec.md`, if it exists, carries no `FR-` entry, and no `changelog.md` entry for 001 exists. The run says what 0.4 had already written.
+
+### Re-runs
+
+- **L6b**, **L6c**, **C3**, **R4**, **H3** and **Ctl**, exactly as registered. In L6c the report line for 001's `FR-004` must name both the line's own replacement (`FR-009`) and that it was retired since, with no live replacement.
