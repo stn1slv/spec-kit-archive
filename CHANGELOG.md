@@ -5,6 +5,25 @@ All notable changes to the Archive extension will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-10-02
+
+### Fixed
+
+- **Retired requirements no longer come back on re-archival.** Re-archiving a feature could add its items again under fresh IDs after a later feature had retired them, so the main spec asserted both the old and the new behaviour. Step 2.4 now reads the changelog's `RETIRED:` lines and leaves out any incoming item they name, reporting it under `## Superseded Requirements` instead. No new question is asked, because the user confirmed the removal on the run that retired it. To make the match exact, new `RETIRED:` lines carry the retired entry's item-level source ref (`from specs/003-billing/spec.md -> FR-003`) instead of the file alone. Lines written by earlier versions still match on file and ID, but only when they say `no replacement` or the incoming item contradicts the named replacement.
+- **Idempotency is defined at the artifact level.** An artifact that already names the feature was read by some runners as "skip it" and by others as "do not duplicate it". The rule now says: already merged suppresses duplicate entries and refs, nothing else; missing sections are still completed.
+- **Hook handling matches core.** The `before_archive` and `after_archive` blocks never followed core's hook rules. A hook without an `enabled` field was skipped (core treats it as enabled), an unreadable `extensions.yml` was skipped silently (core reports it), and the output lacked core's `Description:`, `Prompt:` and `Executing:` lines and the instruction to actually invoke a mandatory hook in the agent's own syntax. Both blocks now use core's wording.
+- **A new `changelog.md` has a defined title**, `# Changelog`. Runs previously produced three different first lines.
+- **The Consolidation report no longer prints numbers when 2.5 was skipped.** The template said to always give them, and a skipped pass has no honest value for them.
+
+### Changed
+
+- **A feature directory outside `specs/` gets its own error.** Core now documents that an absolute `SPECIFY_FEATURE_DIRECTORY` may point outside the project. Such a directory is still refused, because every ref is a `specs/`-relative path, but the error now says why instead of reporting that the token resolves to no feature. A token that names no existing directory keeps the old error.
+- The last-resort context-file probe no longer quotes integration counts, which go stale with every new integration.
+
+### Documentation
+
+- README: the invocation note links core's Command Invocation table instead of listing agents; new sections on when to run the command and on how the archived memory can reach later `specify` and `plan` runs; a short comparison with the `openspec` extension.
+
 ## [1.3.0] - 2026-08-22
 
 A compatibility release. Spec-Kit generalized several conventions this extension was written against, and shipped 1.0.0 with an explicit no-stability-promise for extensions. Nothing here changes what archival *means*; it changes which projects it works in.
