@@ -74,3 +74,32 @@ A review by six models (fable, opus, flash, pro, terra, sol) led to twelve fixes
 - L6b and L6c again updated 001's own Merged Features Log bullet to the corrected FR-006 wording; that entry belongs to the feature being archived, so the bounded update rule allows it.
 - Runners kept hitting the em dash write hook. Some wrote a spaced hyphen, others wrote the prescribed em dash through a shell heredoc. Harness artefact only.
 - Two isolation slips, neither of which affected output: Q6's runner wrote and deleted a checksum file beside its project, and C3's runner ran one `git show` whose output went to `/dev/null` (the working copy is not a repository).
+
+## Round 7c: re-runs after the second six-model review
+
+The second review (same six models) led to nine fixes: the already-retired check became step 2.0 and runs before 2.1, every match now needs content agreement, `RETIRED:` lines are parsed by keyword with every ref checked, the chain rules cover every ending, in-place updates are bounded and recorded, and skipped or failed mandatory hooks are handled. Expectations were pre-registered in `b8bdcca`. The command under test has SHA-256 prefix `0792123af15d432b`, which supersedes the 7b hash.
+
+| Case | Covers | Result |
+|---|---|---|
+| L6d | multi-ref line, item-level content mismatch, ASCII arrows | Pass |
+| H4 | skipped (conditioned) and failing mandatory pre-hooks | Pass |
+| L6c | retirement chain, renumbered ID, new report form | Pass |
+| L6b | retired items stay retired | Pass |
+| C3 | item-level refs in new `RETIRED:` lines | Pass |
+| R4 | already-merged agent files still completed | Pass |
+| H3 | mandatory hooks run, in order | Pass |
+| Ctl | control | Pass |
+
+**L6d.** 001's `FR-004` was matched through the second ref of a multi-ref line written with ASCII arrows and stayed out, confirmed against the live `FR-009`. 001's `FR-006` matched an item-level ref exactly, but the line's Reason described a CSV export, so it was archived as `FR-010` and named as a near-match. Live IDs on disk: `FR-001, 002, 003, 005, 007, 008, 009, 010`.
+
+**H4.** The conditioned mandatory hook was reported as skipped, with the reason. The failing hook ran (`hook-log.txt` holds `fail: ran`), its error was reported with the hook named, and the run stopped before Step 1: the memory spec holds no `FR-` entry and no `changelog.md` exists. The run named the two seeds 0.4 had written.
+
+**L6c.** Same outcome as 7b, and the report now uses the new form: `retired as FR-004; line names FR-009, retired since; no live replacement`.
+
+**C3.** This runner retired both `FR-004` and `SC-003`, each with an item-level ref (`-> FR-004`, `-> SC-003`) and `replaced by FR-009`.
+
+**Observations, not failures.**
+
+- L6b, L6c and L6d all counted 001's already-retired `FR-004` as the statement that meets the Principle II retention obligation, each saying so openly. 2.0 stops a retired item from raising findings; whether it may still satisfy an obligation is not stated. Left for a later release.
+- H3's runner again created an empty `## Known Issues & Gotchas` heading (the deferred 5.3 gap); the other runners declined.
+- Several runners printed whole bug-report bodies during inventory and disclosed it; nothing from those bodies reached any memory file.
