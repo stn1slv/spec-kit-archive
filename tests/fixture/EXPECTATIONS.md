@@ -453,3 +453,13 @@ In the working copy create `features/001-outside/spec.md` (any content) at the p
 
 - **Q6** exactly as registered: a token naming no existing directory still gets rule 4's error, unchanged.
 - **Ctl** (mandatory) exactly as registered. Ctl starts with an empty memory spec, so the two report fixes apply: `changelog.md` opens with `# Changelog`, and `## Consolidation` gives only the skip reason. Those are the only acceptable differences; `hooks: {}` produces no hook block either way. Any difference in archived content is a regression.
+
+### Case C3: item-level refs in new `RETIRED:` lines (added after M2; committed before its run)
+
+M2 confirmed nothing: its runner judged the FR-008 vs FR-002 pair partial under 2.4's whole-or-partial procedure (unchanged since v1.2.2), so no `RETIRED:` line was written and the new format went unexercised. C3 uses the explicit replacement in T7 instead.
+
+Start from the end state of a passing Case A run (round 7 uses H1's end state, with `.specify/extensions.yml` restored to the fixture original), then `/speckit.archive.run specs/002-notifications`; the runner **confirms** removals.
+
+- `FR-004` (keep forever) is retired. Its new line reads `RETIRED: FR-004 (from specs/001-task-manager/spec.md -> FR-004) → replaced by <the main-memory ID of 002's FR-004>`. A file-only `from` is the miss this case exists to catch.
+- If `SC-003` is retired with it (the accepted v1.1.2 precedent), its line carries `from specs/001-task-manager/spec.md -> SC-003`.
+- No `<pending>` survives, and IDs continue above the highest live and retired ID.
